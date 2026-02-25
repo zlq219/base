@@ -3,6 +3,11 @@ import { useUserStore } from '../store/user'
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
+  // 根路径重定向到登录页
+  {
+    path: '/',
+    redirect: '/login'
+  },
   // 登录页
   {
     path: '/login',
@@ -16,6 +21,13 @@ const routes: RouteRecordRaw[] = [
     name: 'Register',
     component: () => import('../../modules/auth/Register.vue'),
     meta: { requiresAuth: false, title: '注册' }
+  },
+  // 验证邮箱页面
+  {
+    path: '/verify/:token',
+    name: 'VerifyEmail',
+    component: () => import('../../modules/auth/VerifyEmail.vue'),
+    meta: { requiresAuth: false, title: '邮箱验证' }
   },
   // 首页
   {

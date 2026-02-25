@@ -182,7 +182,8 @@ export const changePassword = async (req: Request, res: Response) => {
 
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
-    let { token } = req.params
+    // 支持GET请求（URL参数）和POST请求（表单提交）
+    let token = req.params.token || req.body.token
     console.log('开始验证邮箱，token:', token)
 
     // 解码可能被编码的token
@@ -195,75 +196,37 @@ export const verifyEmail = async (req: Request, res: Response) => {
       console.log('token解码失败，使用原始token:', token)
     }
 
+    // 验证token是否存在
+    if (!token) {
+      console.log('验证失败：token不存在')
+      return res.status(400).json({
+        success: false,
+        message: '验证链接无效或已过期'
+      })
+    }
+
+    // 验证JWT token的有效性和过期时间
+    try {
+      jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
+      console.log('JWT token验证成功')
+    } catch (error) {
+      console.log('JWT token验证失败:', error)
+      return res.status(400).json({
+        success: false,
+        message: '验证链接已过期'
+      })
+    }
+
     console.log('开始查询用户，token:', token)
     const user = await User.findOne({ verificationToken: token })
     console.log('查询结果，找到用户:', !!user)
     
     if (!user) {
       console.log('验证失败：未找到具有该token的用户')
-      return res.status(400).send(`
-        <!DOCTYPE html>
-        <html lang="zh-CN">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>邮箱验证结果</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    margin: 0;
-                    padding: 20px;
-                }
-                .container {
-                    background: white;
-                    padding: 40px;
-                    border-radius: 10px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                    text-align: center;
-                    max-width: 400px;
-                    width: 100%;
-                }
-                .error {
-                    color: #f44336;
-                    font-size: 24px;
-                    margin-bottom: 20px;
-                }
-                p {
-                    color: #666;
-                    margin-bottom: 30px;
-                    line-height: 1.5;
-                }
-                .button {
-                    background-color: #667eea;
-                    color: white;
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 16px;
-                    text-decoration: none;
-                    display: inline-block;
-                    transition: background-color 0.3s;
-                }
-                .button:hover {
-                    background-color: #5a6fd8;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="error">❌ 验证失败</div>
-                <p>验证链接无效或已过期。</p>
-                <a href="http://localhost:3000/register" class="button">重新注册</a>
-            </div>
-        </body>
-        </html>
-      `)
+      return res.status(400).json({
+        success: false,
+        message: '验证链接无效或已过期'
+      })
     }
 
     console.log('找到用户，准备验证:', user.email, '当前verified状态:', user.verified)
@@ -279,135 +242,17 @@ export const verifyEmail = async (req: Request, res: Response) => {
     const updatedUser = await User.findOne({ _id: user._id })
     console.log('再次查询数据库，用户:', updatedUser?.email, '的verified状态:', updatedUser?.verified)
 
-    // 直接返回验证成功的HTML，而不是发送文件
-    return res.send(`
-      <!DOCTYPE html>
-      <html lang="zh-CN">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>邮箱验证结果</title>
-          <style>
-              body {
-                  font-family: Arial, sans-serif;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  min-height: 100vh;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  margin: 0;
-                  padding: 20px;
-              }
-              .container {
-                  background: white;
-                  padding: 40px;
-                  border-radius: 10px;
-                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                  text-align: center;
-                  max-width: 400px;
-                  width: 100%;
-              }
-              .success {
-                  color: #4CAF50;
-                  font-size: 24px;
-                  margin-bottom: 20px;
-              }
-              p {
-                  color: #666;
-                  margin-bottom: 30px;
-                  line-height: 1.5;
-              }
-              .button {
-                  background-color: #667eea;
-                  color: white;
-                  padding: 12px 24px;
-                  border: none;
-                  border-radius: 5px;
-                  cursor: pointer;
-                  font-size: 16px;
-                  text-decoration: none;
-                  display: inline-block;
-                  transition: background-color 0.3s;
-              }
-              .button:hover {
-                  background-color: #5a6fd8;
-              }
-          </style>
-      </head>
-      <body>
-          <div class="container">
-              <div class="success">✅ 邮箱验证成功</div>
-              <p>您的邮箱已成功验证，现在可以登录系统了。</p>
-              <a href="http://localhost:3002/login" class="button">去登录</a>
-          </div>
-      </body>
-      </html>
-    `)
+    // 返回成功响应
+    return res.status(200).json({
+      success: true,
+      message: '邮箱验证成功'
+    })
   } catch (error) {
     console.error('验证邮箱错误:', error)
-    return res.status(500).send(`
-      <!DOCTYPE html>
-      <html lang="zh-CN">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>邮箱验证结果</title>
-          <style>
-              body {
-                  font-family: Arial, sans-serif;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  min-height: 100vh;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  margin: 0;
-                  padding: 20px;
-              }
-              .container {
-                  background: white;
-                  padding: 40px;
-                  border-radius: 10px;
-                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                  text-align: center;
-                  max-width: 400px;
-                  width: 100%;
-              }
-              .error {
-                  color: #f44336;
-                  font-size: 24px;
-                  margin-bottom: 20px;
-              }
-              p {
-                  color: #666;
-                  margin-bottom: 30px;
-                  line-height: 1.5;
-              }
-              .button {
-                  background-color: #667eea;
-                  color: white;
-                  padding: 12px 24px;
-                  border: none;
-                  border-radius: 5px;
-                  cursor: pointer;
-                  font-size: 16px;
-                  text-decoration: none;
-                  display: inline-block;
-                  transition: background-color 0.3s;
-              }
-              .button:hover {
-                  background-color: #5a6fd8;
-              }
-          </style>
-      </head>
-      <body>
-          <div class="container">
-              <div class="error">❌ 服务器错误</div>
-              <p>验证过程中发生服务器错误，请稍后重试。</p>
-              <a href="http://localhost:3002/register" class="button">重新注册</a>
-          </div>
-      </body>
-      </html>
-    `)
+    return res.status(500).json({
+      success: false,
+      message: '服务器错误'
+    })
   }
 }
 
