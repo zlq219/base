@@ -1,7 +1,7 @@
 <template>
   <div class="sidebar">
     <div class="sidebar-header">
-      <h1 class="logo">基础应用</h1>
+      <h1 class="logo">{{ getAppName() }}</h1>
     </div>
     <el-menu
       :default-active="activeMenu"
@@ -45,23 +45,56 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { menuConfig } from '../config/menu'
+import { userMenuConfig, adminMenuConfig, guestMenuConfig } from '../config/menu'
+import { useUserStore } from '../core/store/user'
+import { getAppName } from '../config/app'
 
 const route = useRoute()
 const router = useRouter()
 const isCollapse = ref(false)
+const userStore = useUserStore()
 
 // 获取当前激活的菜单
 const activeMenu = computed(() => {
   return route.path || '/'  
 })
 
-// 根据用户权限过滤菜单
+// 根据用户角色选择菜单
 const menuList = computed(() => {
-  // 这里可以根据用户角色过滤菜单
-  // 暂时返回全部菜单
-  return menuConfig
+  let menus = []
+  
+  // 根据登录状态和角色选择菜单
+  if (!userStore.isLoggedIn) {
+    // 未登录用户
+    menus = [...guestMenuConfig]
+  } else if (userStore.isAdmin) {
+    // 管理员用户
+    menus = [...adminMenuConfig]
+  } else {
+    // 普通登录用户
+    menus = [...userMenuConfig]
+  }
+  
+  // 按order字段排序
+  return sortMenus(menus)
 })
+
+// 递归排序菜单
+const sortMenus = (menus: any[]) => {
+  // 按order字段排序
+  const sortedMenus = menus.sort((a, b) => {
+    return (a.order || 999) - (b.order || 999)
+  })
+  
+  // 递归排序子菜单
+  sortedMenus.forEach(menu => {
+    if (menu.children && menu.children.length > 0) {
+      menu.children = sortMenus(menu.children)
+    }
+  })
+  
+  return sortedMenus
+}
 
 // 处理菜单选择
 const handleMenuSelect = (key: string) => {
@@ -69,7 +102,8 @@ const handleMenuSelect = (key: string) => {
 }
 
 onMounted(() => {
-  // 可以在这里添加初始化逻辑
+  // 初始化用户状态
+  userStore.initialize()
 })
 </script>
 
@@ -102,50 +136,69 @@ onMounted(() => {
     flex: 1;
     overflow-y: auto;
     background-color: transparent;
-
-    .el-menu {
-      background-color: transparent;
-      border-right: none;
-
-      .el-menu-item,
-      .el-sub-menu__title {
-        color: rgba(255, 255, 255, 0.7);
-        height: 56px;
-        line-height: 56px;
-        margin: 0 10px;
-        border-radius: 6px;
-
-        &:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        &.is-active {
-          color: #fff;
-          background-color: #1890ff;
-        }
-      }
-
-      .el-sub-menu .el-menu {
-        background-color: rgba(0, 0, 0, 0.3);
-
-        .el-menu-item {
-          margin: 0;
-          padding-left: 40px !important;
-        }
-      }
-    }
   }
+}
 
-  .sidebar-footer {
-    padding: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+/* 全局样式覆盖，确保菜单显示清晰 */
+:deep(.el-menu) {
+  background-color: transparent !important;
+  border-right: none !important;
+}
 
-    .collapse-btn {
-      color: rgba(255, 255, 255, 0.7);
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: #ffffff !important;
+  height: 56px !important;
+  line-height: 56px !important;
+  margin: 0 10px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
 
-      &:hover {
-        color: #fff;
-      }
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+:deep(.el-menu-item.is-active),
+:deep(.el-sub-menu__title.is-active) {
+  color: #fff !important;
+  background-color: #1890ff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.el-sub-menu .el-menu) {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+:deep(.el-sub-menu .el-menu-item) {
+  margin: 0 !important;
+  padding-left: 40px !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+:deep(.el-sub-menu .el-menu-item:hover) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+:deep(.el-sub-menu .el-menu-item.is-active) {
+  color: #fff !important;
+  background-color: rgba(24, 144, 255, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-footer {
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  .collapse-btn {
+    color: rgba(255, 255, 255, 0.7);
+
+    &:hover {
+      color: #fff;
     }
   }
 }

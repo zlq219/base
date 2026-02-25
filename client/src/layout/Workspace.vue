@@ -55,11 +55,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../core/store/user'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // 面包屑导航
@@ -98,8 +99,15 @@ const navigateTo = (path: string) => {
 
 // 退出登录
 const handleLogout = () => {
+  // 检查当前是否在管理员系统中
+  const isInAdminSystem = route.path.startsWith('/admin')
   userStore.logout()
-  router.push('/login')
+  // 根据当前所在系统重定向到不同的登录页面
+  if (isInAdminSystem) {
+    router.push('/admin/login')
+  } else {
+    router.push('/login')
+  }
   ElMessage.success('退出登录成功')
 }
 

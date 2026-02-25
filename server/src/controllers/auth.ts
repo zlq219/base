@@ -20,17 +20,24 @@ export const login = async (req: Request, res: Response) => {
     console.log('后端登录 - 密码:', req.body.password)
     console.log('后端登录 - 请求头:', req.headers)
     
-    const { email, password } = req.body
+    const { email, username, password } = req.body
     
     // Validate request body
-    if (!email || !password) {
-      console.log('后端登录 - 验证失败: 邮箱或密码为空')
-      return res.status(400).json({ message: '邮箱和密码不能为空' })
+    if (!password || (!email && !username)) {
+      console.log('后端登录 - 验证失败: 登录凭证或密码为空')
+      return res.status(400).json({ message: '登录凭证和密码不能为空' })
     }
 
-    // 转换邮箱为小写以匹配数据库存储
-    const lowercaseEmail = email.toLowerCase()
-    const user = await User.findOne({ email: lowercaseEmail }).select('+password')
+    // 根据邮箱或用户名查询用户
+    let user
+    if (email) {
+      // 转换邮箱为小写以匹配数据库存储
+      const lowercaseEmail = email.toLowerCase()
+      user = await User.findOne({ email: lowercaseEmail }).select('+password')
+    } else if (username) {
+      user = await User.findOne({ username }).select('+password')
+    }
+    
     if (!user) {
       return res.status(401).json({ message: '未注册用户不能登录' })
     }
@@ -43,11 +50,11 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: '请先验证邮箱' })
     }
 
-    console.log('登录尝试 - 邮箱:', email, '密码长度:', password ? password.length : 0, '用户密码存在:', !!user.password, '用户密码长度:', user.password ? user.password.length : 0)
+    console.log('登录尝试 - 邮箱:', email, '用户名:', username, '密码长度:', password ? password.length : 0, '用户密码存在:', !!user.password, '用户密码长度:', user.password ? user.password.length : 0)
     const isMatch = await bcrypt.compare(password, user.password)
     console.log('登录尝试 - 密码匹配:', isMatch)
     if (!isMatch) {
-      return res.status(401).json({ message: '邮箱或密码错误' })
+      return res.status(401).json({ message: '登录凭证或密码错误' })
     }
 
     const token = jwt.sign(
@@ -78,6 +85,11 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: '用户名、邮箱和密码不能为空' })
     }
 
+    // 验证用户名长度
+    if (username.length < 3) {
+      return res.status(400).json({ message: '用户名至少3个字符' })
+    }
+
     // 转换邮箱为小写以确保一致性
     const lowercaseEmail = email.toLowerCase()
 
@@ -85,6 +97,12 @@ export const register = async (req: Request, res: Response) => {
     const existingUser = await User.findOne({ email: lowercaseEmail })
     if (existingUser) {
       return res.status(400).json({ message: '该邮箱已被注册' })
+    }
+
+    // 检查用户名是否已存在
+    const existingUsername = await User.findOne({ username })
+    if (existingUsername) {
+      return res.status(400).json({ message: '该用户名已被使用' })
     }
 
     // 创建新用户
@@ -98,14 +116,24 @@ export const register = async (req: Request, res: Response) => {
       username,
       email: lowercaseEmail,
       password: password, // 传递明文密码，由User模型的pre('save')中间件自动哈希
-      role: 'user',
+      role: 'user', // 默认为普通用户，第一个验证的用户会自动升级为管理员
       verified: false,
       verificationToken
     })
     
     console.log('注册过程 - 原始密码:', password, '密码长度:', password.length)
 
-    await user.save()
+    try {
+      await user.save()
+    } catch (error: any) {
+      console.error('注册错误:', error)
+      // 处理其他可能的验证错误
+      if (error.name === 'ValidationError') {
+        const errors = Object.values(error.errors).map((err: any) => err.message)
+        return res.status(400).json({ message: errors.join(', ') })
+      }
+      return res.status(500).json({ message: '服务器错误' })
+    }
 
     // 验证密码是否正确存储
     const savedUser = await User.findOne({ email: lowercaseEmail }).select('+password')
@@ -232,11 +260,19 @@ export const verifyEmail = async (req: Request, res: Response) => {
     console.log('找到用户，准备验证:', user.email, '当前verified状态:', user.verified)
     user.verified = true
     user.verificationToken = undefined
-    console.log('准备保存用户，更新后的verified状态:', user.verified)
+    
+    // 检查是否是第一个被验证的用户
+    const verifiedUserCount = await User.countDocuments({ verified: true })
+    if (verifiedUserCount === 0) {
+      user.role = 'admin'
+      console.log('第一个被验证的用户，设置为管理员:', user.email)
+    }
+    
+    console.log('准备保存用户，更新后的verified状态:', user.verified, '角色:', user.role)
     
     const savedUser = await user.save()
     console.log('保存结果:', !!savedUser)
-    console.log('验证成功，用户:', savedUser.email, '的verified状态已更新为:', savedUser.verified)
+    console.log('验证成功，用户:', savedUser.email, '的verified状态已更新为:', savedUser.verified, '角色:', savedUser.role)
     
     // 再次查询数据库，确认状态已更新
     const updatedUser = await User.findOne({ _id: user._id })

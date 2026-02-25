@@ -15,6 +15,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../../modules/auth/Login.vue'),
     meta: { requiresAuth: false, title: '登录' }
   },
+  // 管理员登录页
+  {
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: () => import('../../modules/auth/AdminLogin.vue'),
+    meta: { requiresAuth: false, title: '管理员登录' }
+  },
   // 注册页
   {
     path: '/register',

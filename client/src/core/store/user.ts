@@ -34,14 +34,15 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     // 登录
-    async login(email: string, password: string) {
-      console.log('前端登录 - 邮箱:', email, '密码:', password, '密码长度:', password.length)
+    async login(loginId: string, password: string, remember: boolean = false) {
+      console.log('前端登录 - 登录凭证:', loginId, '密码:', password, '密码长度:', password.length, '记住我:', remember)
       this.loading = true
       try {
-        const response = await axios.post('/api/auth/login', {
-          email,
-          password
-        }, {
+        // 判断是邮箱还是用户名
+        const isEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(loginId)
+        const payload = isEmail ? { email: loginId, password } : { username: loginId, password }
+        
+        const response = await axios.post('/api/auth/login', payload, {
           // 添加请求拦截器，查看发送的数据
           transformRequest: [function (data) {
             console.log('前端登录 - 发送数据:', data)
@@ -60,9 +61,10 @@ export const useUserStore = defineStore('user', {
         this.userInfo = user
         this.isLoggedIn = true
         
-        // 持久化存储
-        localStorage.setItem('token', token)
-        localStorage.setItem('userInfo', JSON.stringify(user))
+        // 根据记住我选项选择存储方式
+        const storage = remember ? localStorage : sessionStorage
+        storage.setItem('token', token)
+        storage.setItem('userInfo', JSON.stringify(user))
         
         ElMessage.success('登录成功')
         return true
@@ -157,8 +159,15 @@ export const useUserStore = defineStore('user', {
 
     // 初始化用户状态
     initialize() {
-      const savedToken = localStorage.getItem('token')
-      const savedUserInfo = localStorage.getItem('userInfo')
+      // 先从 localStorage 读取（记住我）
+      let savedToken = localStorage.getItem('token')
+      let savedUserInfo = localStorage.getItem('userInfo')
+      
+      // 如果 localStorage 中没有，再从 sessionStorage 读取
+      if (!savedToken || !savedUserInfo) {
+        savedToken = sessionStorage.getItem('token')
+        savedUserInfo = sessionStorage.getItem('userInfo')
+      }
       
       if (savedToken && savedUserInfo) {
         this.token = savedToken

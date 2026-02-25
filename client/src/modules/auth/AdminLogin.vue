@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-form-wrapper">
-      <h2 class="login-title">用户登录</h2>
+      <h2 class="login-title">管理员登录</h2>
       <el-form
         ref="loginFormRef"
         :model="loginForm"
@@ -11,7 +11,7 @@
         <el-form-item prop="loginId">
           <el-input
             v-model="loginForm.loginId"
-            placeholder="请输入邮箱或用户名"
+            placeholder="请输入管理员邮箱或用户名"
             prefix-icon="el-icon-user"
           />
         </el-form-item>
@@ -26,9 +26,7 @@
         </el-form-item>
         <el-form-item>
           <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
-          <div class="login-links">
-            <el-link type="primary" :href="'/register'" class="register-link">立即注册</el-link>
-          </div>
+          <el-link type="primary" :href="'/login'" class="register-link">普通用户登录</el-link>
         </el-form-item>
         <el-form-item>
           <el-button
@@ -37,7 +35,7 @@
             :loading="loading"
             @click="handleLogin"
           >
-            登录
+            管理员登录
           </el-button>
         </el-form-item>
       </el-form>
@@ -80,18 +78,24 @@ const handleLogin = async () => {
   if (!loginFormRef.value) return
   await loginFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      loading.value = true
-      try {
-        const success = await userStore.login(loginForm.loginId, loginForm.password, loginForm.remember)
-        if (success) {
-          router.push('/dashboard')
+          loading.value = true
+          try {
+            const success = await userStore.login(loginForm.loginId, loginForm.password, loginForm.remember)
+            if (success) {
+              // 登录成功后，根据角色跳转到不同页面
+              if (userStore.isAdmin) {
+                router.push('/admin/users')
+              } else {
+                // 如果不是管理员，跳转到普通用户首页
+                router.push('/dashboard')
+              }
+            }
+          } catch (error) {
+            ElMessage.error('登录失败，请重试')
+          } finally {
+            loading.value = false
+          }
         }
-      } catch (error) {
-        ElMessage.error('登录失败，请重试')
-      } finally {
-        loading.value = false
-      }
-    }
   })
 }
 </script>
@@ -102,7 +106,7 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
 .login-form-wrapper {
@@ -132,20 +136,14 @@ const handleLogin = async () => {
   font-size: 16px;
 }
 
-/* 调整记住我和登录链接的布局 */
+/* 调整记住我和普通用户登录的布局 */
 .login-form :deep(.el-form-item__content) {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.login-links {
-  display: flex;
-  gap: 15px;
-}
-
-.register-link,
-.admin-link {
+.register-link {
   margin-top: 0;
 }
 
