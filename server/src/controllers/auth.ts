@@ -63,12 +63,19 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '24h' }
     )
 
+    // 如果用户没有头像，设置默认头像
+    if (!user.avatar || user.avatar.trim() === '') {
+      user.avatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+      await user.save()
+    }
+
     return res.json({ token, user: {
       id: user._id.toString(),
       username: user.username,
       email: user.email,
       role: user.role,
-      verified: user.verified
+      verified: user.verified,
+      avatar: user.avatar
     } })
   } catch (error) {
     console.error('登录错误:', error)
@@ -118,6 +125,7 @@ export const register = async (req: Request, res: Response) => {
       password: password, // 传递明文密码，由User模型的pre('save')中间件自动哈希
       role: 'user', // 默认为普通用户，第一个验证的用户会自动升级为管理员
       verified: false,
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default', // 默认头像
       verificationToken
     })
     
@@ -166,15 +174,108 @@ export const getMe = async (req: Request, res: Response) => {
       return res.status(404).json({ message: '用户不存在' })
     }
 
-    return res.json({ user: {
+    return res.json({
       id: user._id.toString(),
       username: user.username,
       email: user.email,
       role: user.role,
-      verified: user.verified
-    } })
+      verified: user.verified,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt
+    })
   } catch (error) {
     console.error('获取用户信息错误:', error)
+    return res.status(500).json({ message: '服务器错误' })
+  }
+}
+
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const { username, email, bio } = req.body
+    const user = await User.findById(req.user?.id)
+    
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' })
+    }
+
+    // 检查用户名是否已被使用
+    if (username && username !== user.username) {
+      const existingUsername = await User.findOne({ username })
+      if (existingUsername) {
+        return res.status(400).json({ message: '该用户名已被使用' })
+      }
+      user.username = username
+    }
+
+    // 检查邮箱是否已被使用
+    if (email && email !== user.email) {
+      const lowercaseEmail = email.toLowerCase()
+      const existingEmail = await User.findOne({ email: lowercaseEmail })
+      if (existingEmail) {
+        return res.status(400).json({ message: '该邮箱已被注册' })
+      }
+      user.email = lowercaseEmail
+    }
+
+    // 更新个人介绍
+    if (bio !== undefined) {
+      user.bio = bio
+    }
+
+    await user.save()
+
+    return res.json({
+      id: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      verified: user.verified,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt
+    })
+  } catch (error) {
+    console.error('更新用户信息错误:', error)
+    return res.status(500).json({ message: '服务器错误' })
+  }
+}
+
+export const uploadAvatar = async (req: Request, res: Response) => {
+  try {
+    const { avatar } = req.body
+    const user = await User.findById(req.user?.id)
+    
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' })
+    }
+
+    if (!avatar) {
+      return res.status(400).json({ message: '请提供头像URL' })
+    }
+
+    // 检查头像数据大小（限制为2MB）
+    const maxSize = 2 * 1024 * 1024 // 2MB
+    if (avatar.length > maxSize) {
+      return res.status(400).json({ message: '头像大小不能超过2MB' })
+    }
+
+    // 使用前端提供的头像URL
+    user.avatar = avatar
+    
+    await user.save()
+
+    return res.json({
+      id: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      verified: user.verified,
+      avatar: user.avatar,
+      createdAt: user.createdAt
+    })
+  } catch (error) {
+    console.error('上传头像错误:', error)
     return res.status(500).json({ message: '服务器错误' })
   }
 }
@@ -183,7 +284,7 @@ export const changePassword = async (req: Request, res: Response) => {
   try {
     const { currentPassword, newPassword } = req.body
 
-    const user = await User.findById(req.user?.id)
+    const user = await User.findById(req.user?.id).select('+password')
     if (!user) {
       return res.status(404).json({ message: '用户不存在' })
     }
@@ -194,11 +295,8 @@ export const changePassword = async (req: Request, res: Response) => {
       return res.status(400).json({ message: '当前密码错误' })
     }
 
-    // 哈希新密码
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(newPassword, salt)
-
-    user.password = hashedPassword
+    // 直接设置新密码，让pre('save')中间件处理哈希
+    user.password = newPassword
     await user.save()
 
     return res.json({ message: '密码修改成功' })

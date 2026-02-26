@@ -8,12 +8,23 @@ interface UserInfo {
   email: string
   role: string
   verified: boolean
+  avatar?: string
+  bio?: string
   createdAt: string
 }
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    userInfo: {} as UserInfo,
+    userInfo: {
+      id: '',
+      username: '',
+      email: '',
+      role: '',
+      verified: false,
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
+      bio: '',
+      createdAt: new Date().toISOString()
+    } as UserInfo,
     token: localStorage.getItem('token') || '',
     isLoggedIn: !!localStorage.getItem('token'),
     loading: false
@@ -107,6 +118,10 @@ export const useUserStore = defineStore('user', {
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
       
+      // 清除会话存储
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('userInfo')
+      
       ElMessage.success('退出登录成功')
     },
 
@@ -139,7 +154,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       try {
         await axios.post('/api/auth/change-password', {
-          oldPassword,
+          currentPassword: oldPassword,
           newPassword
         }, {
           headers: {

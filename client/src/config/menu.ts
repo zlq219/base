@@ -61,21 +61,21 @@ export const userMenuConfig: MenuItem[] = [
       }
     ]
   },
-  {
+  {  
     path: '/profile',
-    label: '个人中心g',
+    label: '个人中心',
     icon: 'User',
     order: 4,
     children: [
       {
         path: '/profile',
-        label: '个人信息5',
+        label: '个人信息',
         icon: 'User',
         order: 1
       },
       {
         path: '/profile/password',
-        label: '修改密码g',
+        label: '修改密码',
         icon: 'Lock',
         order: 2
       }
@@ -153,7 +153,7 @@ export const adminMenuConfig: MenuItem[] = [
   },
   {
     path: '/admin',
-    label: '系统管理z',
+    label: '系统管理',
     icon: 'Setting',
     order: 5,
     children: [

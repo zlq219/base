@@ -214,4 +214,37 @@ onMounted(() => {
     }
   }
 }
+
+/* 调整图标大小 */
+:deep(.el-menu-item .el-icon),
+:deep(.el-sub-menu__title .el-icon),
+:deep(.el-menu-item svg),
+:deep(.el-sub-menu__title svg),
+:deep(.el-menu-item component),
+:deep(.el-sub-menu__title component),
+:deep(.el-menu-item > *:first-child:not(.el-icon)),
+:deep(.el-sub-menu__title > *:first-child:not(.el-icon)) {
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 10px !important;
+  font-size: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+}
+
+/* 确保菜单项内容对齐 */
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  display: flex !important;
+  align-items: center !important;
+  padding-left: 20px !important;
+}
+
+:deep(.el-sub-menu .el-menu-item) {
+  padding-left: 60px !important;
+}
 </style>
