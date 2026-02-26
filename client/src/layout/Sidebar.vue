@@ -26,6 +26,7 @@
             :key="child.path"
             :index="child.path"
           >
+            <component :is="child.icon" v-if="child.icon" />
             <span>{{ child.label }}</span>
           </el-menu-item>
         </el-sub-menu>
@@ -155,6 +156,17 @@ onMounted(() => {
   font-weight: 500 !important;
 }
 
+/* 调整图标大小 */
+:deep(.el-menu-item .el-icon),
+:deep(.el-sub-menu__title .el-icon),
+:deep(.el-menu-item svg),
+:deep(.el-sub-menu__title svg) {
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 10px !important;
+  font-size: 20px !important;
+}
+
 :deep(.el-menu-item:hover),
 :deep(.el-sub-menu__title:hover) {
   background-color: rgba(255, 255, 255, 0.1) !important;
@@ -174,7 +186,7 @@ onMounted(() => {
 
 :deep(.el-sub-menu .el-menu-item) {
   margin: 0 !important;
-  padding-left: 40px !important;
+  padding-left: 60px !important;
   color: #ffffff !important;
   font-weight: 500 !important;
 }
