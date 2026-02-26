@@ -11,6 +11,8 @@ export interface IUser extends Document {
   password: string
   role: UserRole
   verified: boolean
+  avatar?: string
+  bio?: string // 个人介绍
   verificationToken?: string
   resetPasswordToken?: string
   resetPasswordExpire?: Date
@@ -54,6 +56,15 @@ const UserSchema = new Schema<IUser>({
   verified: {
     type: Boolean,
     default: false
+  },
+  avatar: {
+    type: String,
+    default: ''
+  },
+  bio: {
+    type: String,
+    default: '',
+    maxlength: 500 // 个人介绍最大长度500字符
   },
   verificationToken: {
     type: String
