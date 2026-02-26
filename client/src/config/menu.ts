@@ -18,23 +18,25 @@ export const userMenuConfig: MenuItem[] = [
   {
     path: '/dashboard',
     label: '首页',
-    icon: 'el-icon-s-home',
+    icon: 'House',
     order: 1
   },
   {
     path: '/announcement',
     label: '公告管理',
-    icon: 'el-icon-message',
+    icon: 'Message',
     order: 2,
     children: [
       {
         path: '/announcement/list',
         label: '公告列表',
+        icon: 'Document',
         order: 1
       },
       {
         path: '/announcement/create',
         label: '发布公告',
+        icon: 'Plus',
         order: 2
       }
     ]
@@ -42,17 +44,19 @@ export const userMenuConfig: MenuItem[] = [
   {
     path: '/message',
     label: '消息中心',
-    icon: 'el-icon-bell',
+    icon: 'Bell',
     order: 3,
     children: [
       {
         path: '/message/list',
         label: '消息列表',
+        icon: 'Message',
         order: 1
       },
       {
         path: '/message/settings',
         label: '消息设置',
+        icon: 'Setting',
         order: 2
       }
     ]
@@ -60,17 +64,19 @@ export const userMenuConfig: MenuItem[] = [
   {
     path: '/profile',
     label: '个人中心g',
-    icon: 'el-icon-user',
+    icon: 'User',
     order: 4,
     children: [
       {
         path: '/profile',
         label: '个人信息g',
+        icon: 'User',
         order: 1
       },
       {
         path: '/profile/password',
         label: '修改密码g',
+        icon: 'Lock',
         order: 2
       }
     ]
@@ -82,82 +88,91 @@ export const adminMenuConfig: MenuItem[] = [
   {
     path: '/dashboard',
     label: '首页',
-    icon: 'el-icon-s-home',
+    icon: 'House',
     order: 1
   },
   {
     path: '/announcement',
-    label: '公告管理',
-    icon: 'el-icon-message',
+    label: '公告管理z',
+    icon: 'Message',
     order: 2,
     children: [
       {
         path: '/announcement/list',
-        label: '公告列表',
+        label: '公告列表z',
+        icon: 'Document',
         order: 1
       },
       {
         path: '/announcement/create',
-        label: '发布公告',
+        label: '发布公告z',
+        icon: 'Plus',
         order: 2
       }
     ]
   },
   {
     path: '/message',
-    label: '消息中心',
-    icon: 'el-icon-bell',
+    label: '消息中心z',
+    icon: 'Bell',
     order: 3,
     children: [
       {
         path: '/message/list',
-        label: '消息列表',
+        label: '消息列表z',
+        icon: 'Message',
         order: 1
       },
       {
         path: '/message/settings',
-        label: '消息设置',
+        label: '消息设置z',
+        icon: 'Setting',
         order: 2
       }
     ]
   },
   {
     path: '/profile',
-    label: '个人中心',
-    icon: 'el-icon-user',
+    label: '个人中心z',
+    icon: 'User',
     order: 4,
     children: [
       {
         path: '/profile',
-        label: '个人信息',
+        label: '个人信息z',
+        icon: 'User',
         order: 1
       },
       {
         path: '/profile/password',
-        label: '修改密码',
+        label: '修改密码zz',
+        icon: 'Lock',
         order: 2
       }
     ]
   },
   {
     path: '/admin',
-    label: '系统管理',
-    icon: 'el-icon-setting',
+    label: '系统管理z',
+    icon: 'Setting',
     order: 5,
     children: [
       {
         path: '/admin/users',
-        label: '用户管理',
+        label: '用户管理z',
+        icon: 'User',
         order: 1
       },
       {
         path: '/admin/unverified',
-        label: '未验证用户',
+        label: '未验证用户z',
+        icon: 'Warning',
         order: 2
       },
       {
         path: '/admin/menu',
-        label: '菜单配置',
+        label: '菜单配置z',
+        icon: 'Menu',
         order: 3
       }
     ]

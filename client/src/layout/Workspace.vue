@@ -31,9 +31,9 @@
           </template>
         </el-dropdown>
         <!-- 用户头像 -->
-        <el-dropdown>
+        <el-dropdown v-if="userStore.isLoggedIn">
           <div class="user-avatar">
-              <img src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=200&d=mp&r=x" alt="头像" />
+              <img :src="(userInfo.avatar && userInfo.avatar.trim()) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="头像" />
               <span class="user-name">{{ userInfo.username }}</span>
             </div>
           <template #dropdown>
@@ -89,7 +89,10 @@ const recentMessages = ref([
 
 // 用户信息
 const userInfo = computed(() => {
-  return userStore.userInfo || { username: '测试用户' }
+  return userStore.userInfo || { 
+    username: '测试用户',
+    avatar: '' // 未登录时不显示头像
+  }
 })
 
 // 导航到指定页面
