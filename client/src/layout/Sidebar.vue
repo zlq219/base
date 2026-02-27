@@ -34,7 +34,7 @@
     </el-menu>
     <div class="sidebar-footer">
       <el-button
-        type="link"
+        type="primary"
         icon="el-icon-s-fold"
         @click="isCollapse = !isCollapse"
         class="collapse-btn"
@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { userMenuConfig, adminMenuConfig, guestMenuConfig } from '../config/menu'
 import { useUserStore } from '../core/store/user'
@@ -62,18 +62,25 @@ const activeMenu = computed(() => {
 
 // 根据用户角色选择菜单
 const menuList = computed(() => {
+  // 强制从localStorage重新读取状态，确保与其他标签页同步
+  const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+  const userToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+  
+  console.log('Sidebar菜单计算：adminToken存在', !!adminToken)
+  console.log('Sidebar菜单计算：userToken存在', !!userToken)
+  
   let menus = []
   
-  // 根据登录状态和角色选择菜单
-  if (!userStore.isLoggedIn) {
-    // 未登录用户
-    menus = [...guestMenuConfig]
-  } else if (userStore.isAdmin) {
-    // 管理员用户
-    menus = [...adminMenuConfig]
-  } else {
-    // 普通登录用户
+  // 直接检查是否有任何token
+  if (userToken || adminToken) {
+    // 有token，显示登录后的菜单
+    // 暂时直接显示普通用户菜单，不考虑角色
     menus = [...userMenuConfig]
+    console.log('Sidebar菜单计算：有token，显示普通用户菜单')
+  } else {
+    // 没有token，显示访客菜单
+    menus = [...guestMenuConfig]
+    console.log('Sidebar菜单计算：无token，显示访客菜单')
   }
   
   // 按order字段排序
@@ -102,9 +109,44 @@ const handleMenuSelect = (key: string) => {
   router.push(key)
 }
 
+// 监听路由变化，确保菜单及时更新
+watch(() => route.path, () => {
+  console.log('路由变化，重新计算菜单')
+  // 强制重新计算菜单
+  menuList.value = sortMenus(menuList.value)
+})
+
+// 监听localStorage变化，确保菜单及时响应登录状态变化
 onMounted(() => {
   // 初始化用户状态
   userStore.initialize()
+  console.log('Sidebar挂载，初始化菜单')
+  
+  // 监听localStorage变化，只同步登录状态，不自动操作
+  window.addEventListener('storage', (event) => {
+    console.log('收到localStorage变化事件:', event.key, ' newValue:', event.newValue, ' oldValue:', event.oldValue)
+    // 当登录状态相关数据变化时，重新计算菜单
+    if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo') {
+      console.log('登录状态相关数据变化，重新计算菜单')
+      // 强制重新初始化用户状态
+      userStore.initialize()
+      // 强制重新计算菜单
+      menuList.value = sortMenus(menuList.value)
+    }
+  })
+  
+  // 添加定期检查，确保菜单状态与localStorage保持同步
+  setInterval(() => {
+    const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+    const userToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+    
+    // 检查当前store中的token与localStorage中的token是否一致
+    if (adminToken !== userStore.adminToken || userToken !== userStore.token) {
+      console.log('登录状态不一致，重新初始化')
+      userStore.initialize()
+      menuList.value = sortMenus(menuList.value)
+    }
+  }, 2000) // 每2秒检查一次
 })
 </script>
 
@@ -130,6 +172,20 @@ onMounted(() => {
       font-size: 18px;
       font-weight: bold;
       color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .debug-info {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+
+      div {
+        margin-bottom: 5px;
+      }
     }
   }
 

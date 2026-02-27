@@ -118,7 +118,6 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, _from, next) => {
-  const userStore = useUserStore()
   const requiresAuth = to.meta.requiresAuth !== false
   const requiredRoles = to.meta.roles as string[] || []
 
@@ -127,15 +126,76 @@ router.beforeEach((to, _from, next) => {
 
   // 检查是否需要认证
   if (requiresAuth) {
-    // 检查是否已登录
-    if (!userStore.isLoggedIn) {
-      next('/login')
+    // 强制从localStorage和sessionStorage读取最新的token
+    const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+    const userToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const userInfoStr = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo')
+    
+    console.log('路由守卫：检查认证状态')
+    console.log('路由守卫：adminToken存在', !!adminToken)
+    console.log('路由守卫：userToken存在', !!userToken)
+    console.log('路由守卫：userInfo存在', !!userInfoStr)
+    console.log('路由守卫：当前路径', to.path)
+    
+    // 检查是否有任何有效token
+    if (!adminToken && !userToken) {
+      console.log('路由守卫：未找到任何token，重定向到登录页')
+      // 根据路径决定重定向到哪个登录页
+      if (to.path.startsWith('/admin/')) {
+        next('/admin/login')
+      } else {
+        next('/login')
+      }
       return
     }
-
-    // 检查角色权限
-    if (requiredRoles.length > 0 && !requiredRoles.includes(userStore.userInfo.role)) {
-      next('/dashboard')
+    
+    // 检查用户信息
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr)
+        console.log('路由守卫：用户角色', userInfo.role)
+        
+        // 对于管理员路由，检查用户角色是否为admin
+        if (to.path.startsWith('/admin/') && !to.path.endsWith('/login')) {
+          if (userInfo.role !== 'admin') {
+            console.log('路由守卫：角色权限不足，重定向到dashboard')
+            next('/dashboard')
+            return
+          }
+          // 对于管理员路由，需要adminToken
+          if (!adminToken) {
+            console.log('路由守卫：管理员路由需要adminToken，重定向到登录页')
+            next('/admin/login')
+            return
+          }
+        } else {
+          // 对于普通路由，需要userToken
+          if (!userToken) {
+            console.log('路由守卫：普通路由需要userToken，重定向到登录页')
+            next('/login')
+            return
+          }
+        }
+        
+        console.log('路由守卫：认证通过')
+      } catch (e) {
+        console.log('路由守卫：解析userInfo失败', e)
+        // 解析失败，重定向到登录页
+        if (to.path.startsWith('/admin/')) {
+          next('/admin/login')
+        } else {
+          next('/login')
+        }
+        return
+      }
+    } else {
+      console.log('路由守卫：未找到userInfo，重定向到登录页')
+      // 没有用户信息，重定向到登录页
+      if (to.path.startsWith('/admin/')) {
+        next('/admin/login')
+      } else {
+        next('/login')
+      }
       return
     }
   }

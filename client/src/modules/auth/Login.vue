@@ -25,7 +25,6 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
           <div class="login-links">
             <el-link type="primary" :href="'/register'" class="register-link">立即注册</el-link>
           </div>
@@ -59,8 +58,7 @@ const loading = ref(false)
 // 登录表单
 const loginForm = reactive({
   loginId: '',
-  password: '',
-  remember: false
+  password: ''
 })
 
 // 登录验证规则
@@ -82,9 +80,16 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        const success = await userStore.login(loginForm.loginId, loginForm.password, loginForm.remember)
+        const success = await userStore.login(loginForm.loginId, loginForm.password, true, 'user')
         if (success) {
-          router.push('/dashboard')
+          // 等待一小段时间，确保localStorage状态更新
+          setTimeout(() => {
+            console.log('登录成功后跳转前检查localStorage状态：')
+            console.log('token:', !!localStorage.getItem('token'))
+            console.log('userInfo:', !!localStorage.getItem('userInfo'))
+            // 强制刷新页面，确保菜单重新计算
+            window.location.href = '/dashboard'
+          }, 200)
         }
       } catch (error) {
         ElMessage.error('登录失败，请重试')

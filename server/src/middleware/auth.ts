@@ -64,6 +64,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
 
     return next()
   } catch (error: any) {
+    console.error('管理员权限检查错误:', error)
     return res.status(500).json({ message: '服务器错误' })
   }
 }

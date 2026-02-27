@@ -12,7 +12,7 @@
       <div class="header-right">
         <!-- 消息通知 -->
         <el-dropdown>
-          <el-button type="link" icon="el-icon-bell">
+          <el-button type="text" icon="el-icon-bell">
             <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
           </el-button>
           <template #dropdown>
@@ -30,8 +30,12 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <!-- 系统切换 -->
+        <el-button v-if="(userStore.isLoggedIn && userStore.isAdminLoggedIn)" type="text" @click="switchSystem" class="system-switch">
+          {{ route.path.startsWith('/admin') ? '切换到普通系统' : '切换到管理员系统' }}
+        </el-button>
         <!-- 用户头像 -->
-        <el-dropdown v-if="userStore.isLoggedIn">
+        <el-dropdown v-if="userStore.isLoggedIn || userStore.isAdminLoggedIn">
           <div class="user-avatar">
               <img :src="(userInfo.avatar && userInfo.avatar.trim()) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="头像" />
               <span class="user-name">{{ userInfo.username }}</span>
@@ -104,14 +108,40 @@ const navigateTo = (path: string) => {
 const handleLogout = () => {
   // 检查当前是否在管理员系统中
   const isInAdminSystem = route.path.startsWith('/admin')
-  userStore.logout()
-  // 根据当前所在系统重定向到不同的登录页面
+  const systemToLogout = isInAdminSystem ? 'admin' : 'user'
+  userStore.logout(systemToLogout)
+  // 根据当前所在系统重定向到不同的登录页面，使用window.location.href强制刷新
   if (isInAdminSystem) {
-    router.push('/admin/login')
+    window.location.href = '/admin/login'
   } else {
-    router.push('/login')
+    window.location.href = '/login'
   }
   ElMessage.success('退出登录成功')
+}
+
+// 切换系统
+const switchSystem = () => {
+  if (route.path.startsWith('/admin')) {
+    // 从管理员系统切换到普通用户系统
+    if (userStore.isLoggedIn) {
+      userStore.currentSystem = 'user'
+      localStorage.setItem('currentSystem', 'user')
+      router.push('/dashboard')
+    } else {
+      ElMessage.warning('请先登录普通用户系统')
+      router.push('/login')
+    }
+  } else {
+    // 从普通用户系统切换到管理员系统
+    if (userStore.isAdminLoggedIn) {
+      userStore.currentSystem = 'admin'
+      localStorage.setItem('currentSystem', 'admin')
+      router.push('/admin/users')
+    } else {
+      ElMessage.warning('请先登录管理员系统')
+      router.push('/admin/login')
+    }
+  }
 }
 
 onMounted(() => {
@@ -178,6 +208,10 @@ onMounted(() => {
         .user-name {
           font-size: 14px;
           color: #333;
+        }
+
+        .system-switch {
+          margin-right: 10px;
         }
       }
     }

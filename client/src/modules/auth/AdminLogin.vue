@@ -25,7 +25,6 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
           <el-link type="primary" :href="'/login'" class="register-link">普通用户登录</el-link>
         </el-form-item>
         <el-form-item>
@@ -57,8 +56,7 @@ const loading = ref(false)
 // 登录表单
 const loginForm = reactive({
   loginId: '',
-  password: '',
-  remember: false
+  password: ''
 })
 
 // 登录验证规则
@@ -78,24 +76,27 @@ const handleLogin = async () => {
   if (!loginFormRef.value) return
   await loginFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
-          loading.value = true
-          try {
-            const success = await userStore.login(loginForm.loginId, loginForm.password, loginForm.remember)
-            if (success) {
-              // 登录成功后，根据角色跳转到不同页面
-              if (userStore.isAdmin) {
-                router.push('/admin/users')
-              } else {
-                // 如果不是管理员，跳转到普通用户首页
-                router.push('/dashboard')
-              }
-            }
-          } catch (error) {
-            ElMessage.error('登录失败，请重试')
-          } finally {
-            loading.value = false
-          }
+      loading.value = true
+      try {
+        const success = await userStore.login(loginForm.loginId, loginForm.password, true, 'admin')
+        if (success) {
+          // 等待一小段时间，确保localStorage中的数据已经保存完成
+          setTimeout(() => {
+            console.log('管理员登录：准备跳转到/admin/users')
+            console.log('登录成功后跳转前检查localStorage状态：')
+            console.log('adminToken:', !!localStorage.getItem('adminToken'))
+            console.log('token:', !!localStorage.getItem('token'))
+            console.log('userInfo:', !!localStorage.getItem('userInfo'))
+            // 强制刷新页面，确保菜单重新计算
+            window.location.href = '/admin/users'
+          }, 200)
         }
+      } catch (error) {
+        ElMessage.error('登录失败，请重试')
+      } finally {
+        loading.value = false
+      }
+    }
   })
 }
 </script>

@@ -12,8 +12,9 @@
           placeholder="搜索用户名或邮箱"
           prefix-icon="el-icon-search"
           class="search-input"
+          @keyup.enter="fetchUsers"
         />
-        <el-table :data="filteredUsers" style="width: 100%">
+        <el-table :data="users" style="width: 100%" v-loading="loading">
           <el-table-column prop="username" label="用户名" width="180"></el-table-column>
           <el-table-column prop="email" label="邮箱"></el-table-column>
           <el-table-column prop="role" label="角色" width="120">
@@ -28,7 +29,11 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createdAt" label="注册时间" width="180"></el-table-column>
+          <el-table-column prop="createdAt" label="注册时间" width="180">
+            <template #default="scope">
+              {{ formatDate(scope.row.createdAt) }}
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="150">
             <template #default="scope">
               <el-button type="primary" size="small" @click="viewUser(scope.row.id)">查看</el-button>
@@ -42,52 +47,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-const searchQuery = ref('')
+import axios from 'axios'
+import { useUserStore } from '../../core/store/user'
 
-// 模拟用户数据
-const users = ref([
-  {
-    id: '1',
-    username: 'admin',
-    email: 'admin@example.com',
-    role: 'admin',
-    verified: true,
-    createdAt: '2026-02-22 00:00:00'
-  },
-  {
-    id: '2',
-    username: 'user1',
-    email: 'user1@example.com',
-    role: 'user',
-    verified: true,
-    createdAt: '2026-02-21 12:00:00'
-  },
-  {
-    id: '3',
-    username: 'user2',
-    email: 'user2@example.com',
-    role: 'user',
-    verified: false,
-    createdAt: '2026-02-20 18:00:00'
-  }
-])
+const searchQuery = ref('')
+const users = ref<any[]>([])
+const loading = ref(false)
+const userStore = useUserStore()
 
 // 当前用户ID
-const currentUserId = ref('1') // 模拟当前登录用户ID
+const currentUserId = computed(() => userStore.userInfo.id)
 
-// 过滤用户列表
-const filteredUsers = computed(() => {
-  if (!searchQuery.value) {
-    return users.value
+// 格式化日期
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleString('zh-CN')
+}
+
+// 获取用户列表
+const fetchUsers = async () => {
+  loading.value = true
+  try {
+    console.log('开始获取用户列表，搜索关键词:', searchQuery.value)
+    const response = await axios.get('/api/admin/users', {
+      params: {
+        search: searchQuery.value
+      },
+      headers: {
+        Authorization: `Bearer ${userStore.token}`
+      }
+    })
+    console.log('获取用户列表成功:', response.data)
+    users.value = response.data.users
+  } catch (error: any) {
+    console.error('获取用户列表失败:', error)
+    ElMessage.error(error.response?.data?.message || '获取用户列表失败')
+  } finally {
+    loading.value = false
   }
-  const query = searchQuery.value.toLowerCase()
-  return users.value.filter(user => 
-    user.username.toLowerCase().includes(query) || 
-    user.email.toLowerCase().includes(query)
-  )
-})
+}
 
 const viewUser = (id: string) => {
   ElMessage.info(`查看用户详情: ${id}`)
@@ -98,12 +98,18 @@ const deleteUser = (id: string) => {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    // 模拟删除用户
-    const index = users.value.findIndex(user => user.id === id)
-    if (index > -1) {
-      users.value.splice(index, 1)
+  }).then(async () => {
+    try {
+      await axios.delete(`/api/admin/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`
+        }
+      })
       ElMessage.success('用户删除成功')
+      // 重新获取用户列表
+      fetchUsers()
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '删除用户失败')
     }
   }).catch(() => {
     // 取消删除
@@ -111,7 +117,8 @@ const deleteUser = (id: string) => {
 }
 
 onMounted(() => {
-  // 可以在这里获取用户列表数据
+  // 获取用户列表数据
+  fetchUsers()
 })
 </script>
 
