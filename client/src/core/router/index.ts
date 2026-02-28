@@ -147,6 +147,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../../modules/admin/MenuConfig.vue'),
     meta: { requiresAuth: true, roles: ['admin'], title: '菜单配置' }
   },
+  // 窗口同步测试页面
+  {
+    path: '/test/window-sync',
+    name: 'WindowSyncTest',
+    component: () => import('../../modules/test/WindowSyncTest.vue'),
+    meta: { requiresAuth: false, title: '窗口同步测试' }
+  },
   // 404页面
   {
     path: '/:pathMatch(.*)*',
