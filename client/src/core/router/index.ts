@@ -172,39 +172,38 @@ router.beforeEach((to, _from, next) => {
   document.title = `${to.meta.title || '基础应用'} - 脚手架`
 
   // 检查是否需要认证
-  if (requiresAuth) {
-    // 检查是否已登录（普通用户或管理员）
-    if (!userStore.isLoggedIn && !userStore.isAdminLoggedIn) {
-      // 根据路径决定重定向到哪个登录页
+    if (requiresAuth) {
+      // 对于管理员路由，只检查管理员登录状态
       if (to.path.startsWith('/admin/')) {
-        next('/admin/login')
-      } else {
-        next('/login')
-      }
-      return
-    }
-
-    // 检查角色权限
-    if (requiredRoles.length > 0) {
-      // 对于管理员路由，检查用户是否为管理员且有管理员token
-      if (to.path.startsWith('/admin/')) {
-        // 只有通过管理员登录页面登录的用户才能访问管理员路由
-        if (userStore.isAdminLoggedIn) {
-          next()
+        if (!userStore.isAdminLoggedIn) {
+          next('/admin/login')
           return
-        } else {
-          // 普通用户不能访问管理员路由，即使角色是admin
-          next('/dashboard')
+        }
+      } else {
+        // 对于普通路由，只检查普通用户登录状态
+        if (!userStore.isLoggedIn) {
+          next('/login')
           return
         }
       }
-      // 对于其他需要角色的路由，检查用户角色
-      if (!requiredRoles.includes(userStore.userInfo.role)) {
-        next('/dashboard')
-        return
+
+      // 检查角色权限
+      if (requiredRoles.length > 0) {
+        // 对于管理员路由，检查用户是否为管理员
+        if (to.path.startsWith('/admin/')) {
+          if (userStore.userInfo.role !== 'admin') {
+            next('/admin/login')
+            return
+          }
+        } else {
+          // 对于其他需要角色的路由，检查用户角色
+          if (!requiredRoles.includes(userStore.userInfo.role)) {
+            next('/dashboard')
+            return
+          }
+        }
       }
     }
-  }
 
   next()
 })

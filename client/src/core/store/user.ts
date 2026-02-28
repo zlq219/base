@@ -79,60 +79,51 @@ export const useUserStore = defineStore('user', {
           }
           // 始终保存到localStorage，确保跨标签页同步
           localStorage.setItem('adminToken', token)
-          localStorage.setItem('token', token) // 同时保存普通token，确保访问普通路由时也能通过验证
           this.adminToken = token
-          this.token = token // 同时设置普通token
           this.isAdminLoggedIn = true
-          this.isLoggedIn = true // 管理员登录时也设置isLoggedIn为true
+          // 管理员登录时不修改普通用户状态
           console.log('管理员登录：保存adminToken到localStorage')
-          console.log('管理员登录：同时保存token到localStorage')
         } else {
           // 始终保存到localStorage，确保跨标签页同步
           localStorage.setItem('token', token)
-          // 清除可能存在的adminToken，确保普通用户无法访问管理员路由
-          localStorage.removeItem('adminToken')
           this.token = token
-          this.adminToken = ''
           this.isLoggedIn = true
-          this.isAdminLoggedIn = false
-          console.log('普通用户登录：保存token到localStorage，清除adminToken')
+          // 普通用户登录时不修改管理员状态
+          console.log('普通用户登录：保存token到localStorage')
         }
-        
-        this.userInfo = user
-        this.currentSystem = system
-        localStorage.setItem('currentSystem', system)
-        localStorage.setItem('userInfo', JSON.stringify(user))
-        console.log('登录成功：保存用户信息到localStorage', user)
-        console.log('登录成功：当前系统', system)
-        
-        // 强制触发localStorage变化事件，确保其他标签页能够捕获到
+      
+      this.userInfo = user
+      localStorage.setItem('userInfo', JSON.stringify(user))
+      console.log('登录成功：保存用户信息到localStorage', user)
+      
+      // 强制触发localStorage变化事件，确保其他标签页能够捕获到
+      setTimeout(() => {
+        // 无论token保存在localStorage还是sessionStorage，都触发localStorage事件
+        // 因为sessionStorage是标签页隔离的，无法直接同步
+        // 所以我们通过localStorage事件来通知其他标签页重新检查sessionStorage
+        localStorage.setItem('token_sync', Date.now().toString())
         setTimeout(() => {
-          // 无论token保存在localStorage还是sessionStorage，都触发localStorage事件
-          // 因为sessionStorage是标签页隔离的，无法直接同步
-          // 所以我们通过localStorage事件来通知其他标签页重新检查sessionStorage
-          localStorage.setItem('token_sync', Date.now().toString())
-          setTimeout(() => {
-            localStorage.removeItem('token_sync')
-          }, 10)
-          localStorage.setItem('adminToken_sync', Date.now().toString())
-          setTimeout(() => {
-            localStorage.removeItem('adminToken_sync')
-          }, 10)
-          localStorage.setItem('userInfo_sync', Date.now().toString())
-          setTimeout(() => {
-            localStorage.removeItem('userInfo_sync')
-          }, 10)
-        }, 100)
-        
-        ElMessage.success('登录成功')
-        return true
-      } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '登录失败')
-        return false
-      } finally {
-        this.loading = false
-      }
-    },
+          localStorage.removeItem('token_sync')
+        }, 10)
+        localStorage.setItem('adminToken_sync', Date.now().toString())
+        setTimeout(() => {
+          localStorage.removeItem('adminToken_sync')
+        }, 10)
+        localStorage.setItem('userInfo_sync', Date.now().toString())
+        setTimeout(() => {
+          localStorage.removeItem('userInfo_sync')
+        }, 10)
+      }, 100)
+      
+      ElMessage.success('登录成功')
+      return true
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '登录失败')
+      return false
+    } finally {
+      this.loading = false
+    }
+  },
 
     // 注册
     async register(username: string, email: string, password: string) {
@@ -180,16 +171,15 @@ export const useUserStore = defineStore('user', {
         // 清除本地存储
         localStorage.removeItem('adminToken')
         
-        // 同时清除普通token，因为管理员登录时同时创建了两个token
-        this.token = ''
-        this.isLoggedIn = false
-        localStorage.removeItem('token')
+        // 不清除普通token，因为管理员系统和普通用户系统是完全独立的
         
-        // 清除用户信息
-        this.userInfo = {} as UserInfo
-        localStorage.removeItem('userInfo')
-        this.currentSystem = 'user'
-        localStorage.removeItem('currentSystem')
+        // 如果没有普通用户登录，也清除用户信息
+        if (!this.isLoggedIn) {
+          this.userInfo = {} as UserInfo
+          localStorage.removeItem('userInfo')
+          this.currentSystem = 'user'
+          localStorage.removeItem('currentSystem')
+        }
       } else {
         // 清除所有状态
         this.token = ''
@@ -231,7 +221,18 @@ export const useUserStore = defineStore('user', {
 
     // 获取用户信息
     async fetchUserInfo() {
-      const token = this.currentSystem === 'admin' ? this.adminToken : this.token
+      // 根据当前系统类型使用正确的token
+      let token = ''
+      let system = 'user'
+      
+      if (this.isAdminLoggedIn) {
+        token = this.adminToken
+        system = 'admin'
+      } else if (this.isLoggedIn) {
+        token = this.token
+        system = 'user'
+      }
+      
       if (!token) return
       
       this.loading = true
@@ -247,7 +248,7 @@ export const useUserStore = defineStore('user', {
       } catch (error: any) {
         // 令牌失效，清除登录状态
         if (error.response?.status === 401) {
-          this.logout(this.currentSystem)
+          this.logout(system as 'user' | 'admin')
         }
       } finally {
         this.loading = false
@@ -256,7 +257,20 @@ export const useUserStore = defineStore('user', {
 
     // 修改密码
     async changePassword(oldPassword: string, newPassword: string) {
-      const token = this.currentSystem === 'admin' ? this.adminToken : this.token
+      // 根据当前系统类型使用正确的token
+      let token = ''
+      
+      if (this.isAdminLoggedIn) {
+        token = this.adminToken
+      } else if (this.isLoggedIn) {
+        token = this.token
+      }
+      
+      if (!token) {
+        ElMessage.error('请先登录')
+        return false
+      }
+      
       this.loading = true
       try {
         await axios.post('/api/auth/change-password', {
@@ -301,7 +315,7 @@ export const useUserStore = defineStore('user', {
         email: '',
         role: '',
         verified: false,
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
+        avatar: '',
         bio: '',
         createdAt: new Date().toISOString()
       } as UserInfo
@@ -322,7 +336,7 @@ export const useUserStore = defineStore('user', {
         console.log('初始化：管理员登录状态恢复')
       }
       
-      if (savedUserInfo) {
+      if (savedUserInfo && (this.isLoggedIn || this.isAdminLoggedIn)) {
         try {
           this.userInfo = JSON.parse(savedUserInfo)
           console.log('初始化：用户信息恢复，角色:', this.userInfo.role)
@@ -337,7 +351,7 @@ export const useUserStore = defineStore('user', {
       }
       
       // 验证令牌是否有效
-      if (this.token) {
+      if (this.token || this.adminToken) {
         console.log('初始化：验证令牌')
         this.fetchUserInfo()
       }
