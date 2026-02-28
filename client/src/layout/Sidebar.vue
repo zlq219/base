@@ -12,13 +12,17 @@
       <template v-for="item in menuList" :key="item.path">
         <!-- 一级菜单 -->
         <el-menu-item v-if="!item.children" :index="item.path">
-          <component :is="item.icon" v-if="item.icon" />
+          <el-icon v-if="item.icon">
+            <component :is="item.icon" />
+          </el-icon>
           <span>{{ item.label }}</span>
         </el-menu-item>
         <!-- 二级菜单 -->
         <el-sub-menu v-else :index="item.path">
           <template #title>
-            <component :is="item.icon" v-if="item.icon" />
+            <el-icon v-if="item.icon">
+              <component :is="item.icon" />
+            </el-icon>
             <span>{{ item.label }}</span>
           </template>
           <el-menu-item
@@ -26,7 +30,9 @@
             :key="child.path"
             :index="child.path"
           >
-            <component :is="child.icon" v-if="child.icon" />
+            <el-icon v-if="child.icon">
+              <component :is="child.icon" />
+            </el-icon>
             <span>{{ child.label }}</span>
           </el-menu-item>
         </el-sub-menu>
@@ -67,14 +73,8 @@ const menuList = computed(() => {
   const adminToken = sessionStorage.getItem('adminToken')
   const userToken = sessionStorage.getItem('token')
   
-  // 依赖userStore的状态，确保状态变化时重新计算
-  const isLoggedIn = userStore.isLoggedIn
-  const isAdminLoggedIn = userStore.isAdminLoggedIn
-  
   console.log('Sidebar菜单计算：adminToken存在', !!adminToken)
   console.log('Sidebar菜单计算：userToken存在', !!userToken)
-  console.log('Sidebar菜单计算：userStore.isLoggedIn', isLoggedIn)
-  console.log('Sidebar菜单计算：userStore.isAdminLoggedIn', isAdminLoggedIn)
   console.log('Sidebar菜单计算：当前路径', route.path)
   
   // 检查当前路径

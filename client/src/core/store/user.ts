@@ -75,14 +75,8 @@ export const useUserStore = defineStore('user', {
         localStorage.setItem('token', sessionStorage.getItem('token') || '')
         localStorage.setItem('userInfo', sessionStorage.getItem('userInfo') || '')
       
-        setTimeout(() => {
-          localStorage.setItem('token_sync', Date.now().toString())
-          setTimeout(() => localStorage.removeItem('token_sync'), 10)
-          localStorage.setItem('adminToken_sync', Date.now().toString())
-          setTimeout(() => localStorage.removeItem('adminToken_sync'), 10)
-          localStorage.setItem('userInfo_sync', Date.now().toString())
-          setTimeout(() => localStorage.removeItem('userInfo_sync'), 10)
-        }, 100)
+        // 触发localStorage事件，用于多标签页同步
+        localStorage.setItem('login-event', Date.now().toString())
       
         ElMessage.success('登录成功')
         return true
@@ -150,14 +144,8 @@ export const useUserStore = defineStore('user', {
     localStorage.setItem('token', sessionStorage.getItem('token') || '')
     localStorage.setItem('userInfo', sessionStorage.getItem('userInfo') || '')
     
-    setTimeout(() => {
-      localStorage.setItem('token_sync', Date.now().toString())
-      setTimeout(() => localStorage.removeItem('token_sync'), 10)
-      localStorage.setItem('adminToken_sync', Date.now().toString())
-      setTimeout(() => localStorage.removeItem('adminToken_sync'), 10)
-      localStorage.setItem('userInfo_sync', Date.now().toString())
-      setTimeout(() => localStorage.removeItem('userInfo_sync'), 10)
-    }, 100)
+    // 触发localStorage事件，用于多标签页同步
+    localStorage.setItem('logout-event', Date.now().toString())
     
     ElMessage.success('退出登录成功')
   },
@@ -241,7 +229,7 @@ export const useUserStore = defineStore('user', {
       email: '',
       role: '',
       verified: false,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
       bio: '',
       createdAt: new Date().toISOString()
     } as UserInfo
@@ -274,6 +262,5 @@ export const useUserStore = defineStore('user', {
     if (this.token || this.adminToken) {
       this.fetchUserInfo()
     }
-  }
   }
 })
