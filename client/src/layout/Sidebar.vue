@@ -63,10 +63,9 @@ const activeMenu = computed(() => {
 // 根据用户角色选择菜单
 const menuList = computed(() => {
   let menus = []
-  
-  // 强制从localStorage重新读取状态，确保与其他标签页同步
-  const adminToken = localStorage.getItem('adminToken')
-  const userToken = localStorage.getItem('token')
+  // 强制从sessionStorage重新读取状态，确保与其他标签页同步
+  const adminToken = sessionStorage.getItem('adminToken')
+  const userToken = sessionStorage.getItem('token')
   
   // 依赖userStore的状态，确保状态变化时重新计算
   const isLoggedIn = userStore.isLoggedIn
@@ -140,36 +139,42 @@ onMounted(() => {
     // 当登录状态相关数据变化时，重新计算菜单
     if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo' ||
         event.key === 'token_sync' || event.key === 'adminToken_sync' || event.key === 'userInfo_sync') {
-      console.log('登录状态相关数据变化，重新初始化用户状态')
+      console.log('登录状态相关数据变化，同步sessionStorage并重新初始化用户状态')
+      // 同步localStorage到sessionStorage
+      if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo') {
+        if (event.newValue) {
+          sessionStorage.setItem(event.key, event.newValue)
+        } else {
+          sessionStorage.removeItem(event.key)
+        }
+      }
       // 强制重新初始化用户状态
       userStore.initialize()
-      // 菜单会自动重新计算，因为它依赖于localStorage的状态
+      // 菜单会自动重新计算，因为它依赖于sessionStorage的状态
       console.log('令牌同步成功，菜单已更新')
       console.log('同步后的状态：')
-      console.log('adminToken (localStorage):', !!localStorage.getItem('adminToken'))
       console.log('adminToken (sessionStorage):', !!sessionStorage.getItem('adminToken'))
-      console.log('token (localStorage):', !!localStorage.getItem('token'))
       console.log('token (sessionStorage):', !!sessionStorage.getItem('token'))
-      console.log('userInfo:', !!localStorage.getItem('userInfo'))
+      console.log('userInfo (sessionStorage):', !!sessionStorage.getItem('userInfo'))
     }
   })
   
-  // 添加定期检查，确保菜单状态与localStorage保持同步
+  // 添加定期检查，确保菜单状态与sessionStorage保持同步
   setInterval(() => {
-    const adminToken = localStorage.getItem('adminToken')
-    const userToken = localStorage.getItem('token')
-    const userInfoStr = localStorage.getItem('userInfo')
+    const adminToken = sessionStorage.getItem('adminToken')
+    const userToken = sessionStorage.getItem('token')
+    const userInfoStr = sessionStorage.getItem('userInfo')
     
     console.log('定期检查登录状态：')
-    console.log('localStorage adminToken:', !!adminToken)
-    console.log('localStorage userToken:', !!userToken)
-    console.log('localStorage userInfo:', !!userInfoStr)
+    console.log('sessionStorage adminToken:', !!adminToken)
+    console.log('sessionStorage userToken:', !!userToken)
+    console.log('sessionStorage userInfo:', !!userInfoStr)
     console.log('store adminToken:', !!userStore.adminToken)
     console.log('store userToken:', !!userStore.token)
     console.log('store isLoggedIn:', userStore.isLoggedIn)
     console.log('store isAdmin:', userStore.isAdmin)
     
-    // 检查当前store中的token与localStorage中的token是否一致
+    // 检查当前store中的token与sessionStorage中的token是否一致
     if (adminToken !== userStore.adminToken || userToken !== userStore.token) {
       console.log('登录状态不一致，重新初始化')
       userStore.initialize()

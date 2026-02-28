@@ -25,10 +25,11 @@ export const useUserStore = defineStore('user', {
       bio: '',
       createdAt: new Date().toISOString()
     } as UserInfo,
-    token: localStorage.getItem('token') || '',
-    adminToken: localStorage.getItem('adminToken') || '',
-    isLoggedIn: !!localStorage.getItem('token'),
-    isAdminLoggedIn: !!localStorage.getItem('adminToken'),
+    token: sessionStorage.getItem('token') || '',
+    adminToken: sessionStorage.getItem('adminToken') || '',
+    isLoggedIn: !!sessionStorage.getItem('token'),
+    isAdminLoggedIn: !!sessionStorage.getItem('adminToken'),
+    currentSystem: 'user' as 'user' | 'admin', // 'user' 或 'admin'
     loading: false
   }),
 
@@ -76,24 +77,29 @@ export const useUserStore = defineStore('user', {
             ElMessage.error('您不是管理员，无法登录管理员系统')
             return false
           }
-          // 始终保存到localStorage，确保跨标签页同步
-          localStorage.setItem('adminToken', token)
+          // 保存到sessionStorage，确保浏览器关闭后需要重新登录
+          sessionStorage.setItem('adminToken', token)
           this.adminToken = token
           this.isAdminLoggedIn = true
           // 管理员登录时不修改普通用户状态
-          console.log('管理员登录：保存adminToken到localStorage')
+          console.log('管理员登录：保存adminToken到sessionStorage')
         } else {
-          // 始终保存到localStorage，确保跨标签页同步
-          localStorage.setItem('token', token)
+          // 保存到sessionStorage，确保浏览器关闭后需要重新登录
+          sessionStorage.setItem('token', token)
           this.token = token
           this.isLoggedIn = true
           // 普通用户登录时不修改管理员状态
-          console.log('普通用户登录：保存token到localStorage')
+          console.log('普通用户登录：保存token到sessionStorage')
         }
       
       this.userInfo = user
-      localStorage.setItem('userInfo', JSON.stringify(user))
-      console.log('登录成功：保存用户信息到localStorage', user)
+      sessionStorage.setItem('userInfo', JSON.stringify(user))
+      console.log('登录成功：保存用户信息到sessionStorage', user)
+      
+      // 保存到localStorage作为跨标签页通信的桥梁
+      localStorage.setItem('adminToken', sessionStorage.getItem('adminToken') || '')
+      localStorage.setItem('token', sessionStorage.getItem('token') || '')
+      localStorage.setItem('userInfo', sessionStorage.getItem('userInfo') || '')
       
       // 强制触发localStorage变化事件，确保其他标签页能够捕获到
       setTimeout(() => {
@@ -145,55 +151,60 @@ export const useUserStore = defineStore('user', {
     },
 
     // 登出
-  logout(system?: 'user' | 'admin') {
-    console.log('开始登出，系统:', system)
-    if (system === 'user') {
-      // 清除普通用户状态
-      this.token = ''
-      this.isLoggedIn = false
-      
-      // 清除本地存储
-      localStorage.removeItem('token')
-      
-      // 如果没有管理员登录，也清除用户信息
-      if (!this.isAdminLoggedIn) {
+    logout(system?: 'user' | 'admin') {
+      console.log('开始登出，系统:', system)
+      if (system === 'user') {
+        // 清除普通用户状态
+        this.token = ''
+        this.isLoggedIn = false
+        
+        // 清除session存储
+        sessionStorage.removeItem('token')
+        
+        // 如果没有管理员登录，也清除用户信息
+        if (!this.isAdminLoggedIn) {
+          this.userInfo = {} as UserInfo
+          sessionStorage.removeItem('userInfo')
+          this.currentSystem = 'user'
+          sessionStorage.removeItem('currentSystem')
+        }
+      } else if (system === 'admin') {
+        // 清除管理员状态
+        this.adminToken = ''
+        this.isAdminLoggedIn = false
+        
+        // 清除session存储
+        sessionStorage.removeItem('adminToken')
+        
+        // 不清除普通token，因为管理员系统和普通用户系统是完全独立的
+        
+        // 如果没有普通用户登录，也清除用户信息
+        if (!this.isLoggedIn) {
+          this.userInfo = {} as UserInfo
+          sessionStorage.removeItem('userInfo')
+          this.currentSystem = 'user'
+          sessionStorage.removeItem('currentSystem')
+        }
+      } else {
+        // 清除所有状态
+        this.token = ''
+        this.adminToken = ''
         this.userInfo = {} as UserInfo
-        localStorage.removeItem('userInfo')
+        this.isLoggedIn = false
+        this.isAdminLoggedIn = false
         this.currentSystem = 'user'
-        localStorage.removeItem('currentSystem')
+        
+        // 清除session存储
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('adminToken')
+        sessionStorage.removeItem('userInfo')
+        sessionStorage.removeItem('currentSystem')
       }
-    } else if (system === 'admin') {
-      // 清除管理员状态
-      this.adminToken = ''
-      this.isAdminLoggedIn = false
       
-      // 清除本地存储
-      localStorage.removeItem('adminToken')
-      
-      // 不清除普通token，因为管理员系统和普通用户系统是完全独立的
-      
-      // 如果没有普通用户登录，也清除用户信息
-      if (!this.isLoggedIn) {
-        this.userInfo = {} as UserInfo
-        localStorage.removeItem('userInfo')
-        this.currentSystem = 'user'
-        localStorage.removeItem('currentSystem')
-      }
-    } else {
-      // 清除所有状态
-      this.token = ''
-      this.adminToken = ''
-      this.userInfo = {} as UserInfo
-      this.isLoggedIn = false
-      this.isAdminLoggedIn = false
-      this.currentSystem = 'user'
-      
-      // 清除本地存储
-      localStorage.removeItem('token')
-      localStorage.removeItem('adminToken')
-      localStorage.removeItem('userInfo')
-      localStorage.removeItem('currentSystem')
-    }
+      // 同步到localStorage作为跨标签页通信的桥梁
+      localStorage.setItem('adminToken', sessionStorage.getItem('adminToken') || '')
+      localStorage.setItem('token', sessionStorage.getItem('token') || '')
+      localStorage.setItem('userInfo', sessionStorage.getItem('userInfo') || '')
     
     // 强制触发localStorage变化事件，确保其他标签页能够捕获到
     setTimeout(() => {
@@ -293,10 +304,10 @@ export const useUserStore = defineStore('user', {
 
     // 初始化用户状态
     initialize() {
-      // 只从localStorage读取，确保跨标签页同步
-      const savedToken = localStorage.getItem('token')
-      const savedAdminToken = localStorage.getItem('adminToken')
-      const savedUserInfo = localStorage.getItem('userInfo')
+      // 只从sessionStorage读取，确保浏览器关闭后需要重新登录
+      const savedToken = sessionStorage.getItem('token')
+      const savedAdminToken = sessionStorage.getItem('adminToken')
+      const savedUserInfo = sessionStorage.getItem('userInfo')
       
       console.log('初始化用户状态：')
       console.log('savedToken:', !!savedToken)
