@@ -90,10 +90,10 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { menuConfig } from '../../config/menu'
+import { adminMenuConfig } from '../../config/menu'
 
 // 菜单数据
-const menuData = ref([...menuConfig])
+const menuData = ref([...adminMenuConfig])
 
 // 树节点配置
 const defaultProps = {

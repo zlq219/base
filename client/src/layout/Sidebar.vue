@@ -63,24 +63,36 @@ const activeMenu = computed(() => {
 // 根据用户角色选择菜单
 const menuList = computed(() => {
   // 强制从localStorage重新读取状态，确保与其他标签页同步
-  const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
-  const userToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+  const adminToken = localStorage.getItem('adminToken')
+  const userToken = localStorage.getItem('token')
+  
+  // 依赖userStore的状态，确保状态变化时重新计算
+  const isLoggedIn = userStore.isLoggedIn
+  const isAdminLoggedIn = userStore.isAdminLoggedIn
   
   console.log('Sidebar菜单计算：adminToken存在', !!adminToken)
   console.log('Sidebar菜单计算：userToken存在', !!userToken)
+  console.log('Sidebar菜单计算：userStore.isLoggedIn', isLoggedIn)
+  console.log('Sidebar菜单计算：userStore.isAdminLoggedIn', isAdminLoggedIn)
   
   let menus = []
   
   // 直接检查是否有任何token
   if (userToken || adminToken) {
-    // 有token，显示登录后的菜单
-    // 暂时直接显示普通用户菜单，不考虑角色
-    menus = [...userMenuConfig]
-    console.log('Sidebar菜单计算：有token，显示普通用户菜单')
+    // 有token，检查用户角色
+    if (adminToken) {
+      // 有adminToken，显示管理员菜单
+      menus = [...adminMenuConfig]
+      console.log('Sidebar菜单计算：管理员登录，显示管理员菜单')
+    } else {
+      // 普通登录用户
+      menus = [...userMenuConfig]
+      console.log('Sidebar菜单计算：普通用户登录，显示普通用户菜单')
+    }
   } else {
     // 没有token，显示访客菜单
     menus = [...guestMenuConfig]
-    console.log('Sidebar菜单计算：无token，显示访客菜单')
+    console.log('Sidebar菜单计算：未登录，显示访客菜单')
   }
   
   // 按order字段排序
@@ -120,33 +132,47 @@ watch(() => route.path, () => {
 onMounted(() => {
   // 初始化用户状态
   userStore.initialize()
-  console.log('Sidebar挂载，初始化菜单')
   
-  // 监听localStorage变化，只同步登录状态，不自动操作
+  // 监听localStorage变化，确保菜单及时响应登录状态变化
   window.addEventListener('storage', (event) => {
     console.log('收到localStorage变化事件:', event.key, ' newValue:', event.newValue, ' oldValue:', event.oldValue)
     // 当登录状态相关数据变化时，重新计算菜单
-    if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo') {
-      console.log('登录状态相关数据变化，重新计算菜单')
+    if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo' ||
+        event.key === 'token_sync' || event.key === 'adminToken_sync' || event.key === 'userInfo_sync') {
+      console.log('登录状态相关数据变化，重新初始化用户状态')
       // 强制重新初始化用户状态
       userStore.initialize()
-      // 强制重新计算菜单
-      menuList.value = sortMenus(menuList.value)
+      // 菜单会自动重新计算，因为它依赖于localStorage的状态
+      console.log('令牌同步成功，菜单已更新')
+      console.log('同步后的状态：')
+      console.log('adminToken (localStorage):', !!localStorage.getItem('adminToken'))
+      console.log('token (localStorage):', !!localStorage.getItem('token'))
+      console.log('userInfo:', !!localStorage.getItem('userInfo'))
     }
   })
   
   // 添加定期检查，确保菜单状态与localStorage保持同步
   setInterval(() => {
-    const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
-    const userToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const adminToken = localStorage.getItem('adminToken')
+    const userToken = localStorage.getItem('token')
+    const userInfoStr = localStorage.getItem('userInfo')
+    
+    console.log('定期检查登录状态：')
+    console.log('localStorage adminToken:', !!adminToken)
+    console.log('localStorage userToken:', !!userToken)
+    console.log('localStorage userInfo:', !!userInfoStr)
+    console.log('store adminToken:', !!userStore.adminToken)
+    console.log('store userToken:', !!userStore.token)
+    console.log('store isLoggedIn:', userStore.isLoggedIn)
+    console.log('store isAdmin:', userStore.isAdmin)
     
     // 检查当前store中的token与localStorage中的token是否一致
     if (adminToken !== userStore.adminToken || userToken !== userStore.token) {
       console.log('登录状态不一致，重新初始化')
       userStore.initialize()
-      menuList.value = sortMenus(menuList.value)
+      // 菜单会自动重新计算，因为它依赖于userStore的状态
     }
-  }, 2000) // 每2秒检查一次
+  }, 1000) // 每1秒检查一次
 })
 </script>
 
@@ -173,19 +199,6 @@ onMounted(() => {
       font-weight: bold;
       color: #fff;
       margin-bottom: 10px;
-    }
-
-    .debug-info {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-top: 10px;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-
-      div {
-        margin-bottom: 5px;
-      }
     }
   }
 
@@ -216,11 +229,21 @@ onMounted(() => {
 :deep(.el-menu-item .el-icon),
 :deep(.el-sub-menu__title .el-icon),
 :deep(.el-menu-item svg),
-:deep(.el-sub-menu__title svg) {
+:deep(.el-sub-menu__title svg),
+:deep(.el-menu-item component),
+:deep(.el-sub-menu__title component),
+:deep(.el-menu-item > *:first-child:not(.el-icon)),
+:deep(.el-sub-menu__title > *:first-child:not(.el-icon)) {
   width: 20px !important;
   height: 20px !important;
   margin-right: 10px !important;
   font-size: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
 }
 
 :deep(.el-menu-item:hover),
@@ -269,27 +292,6 @@ onMounted(() => {
       color: #fff;
     }
   }
-}
-
-/* 调整图标大小 */
-:deep(.el-menu-item .el-icon),
-:deep(.el-sub-menu__title .el-icon),
-:deep(.el-menu-item svg),
-:deep(.el-sub-menu__title svg),
-:deep(.el-menu-item component),
-:deep(.el-sub-menu__title component),
-:deep(.el-menu-item > *:first-child:not(.el-icon)),
-:deep(.el-sub-menu__title > *:first-child:not(.el-icon)) {
-  width: 20px !important;
-  height: 20px !important;
-  margin-right: 10px !important;
-  font-size: 20px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
 }
 
 /* 确保菜单项内容对齐 */

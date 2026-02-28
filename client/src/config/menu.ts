@@ -86,25 +86,25 @@ export const userMenuConfig: MenuItem[] = [
 // 2. 管理员菜单（只有管理员可见）
 export const adminMenuConfig: MenuItem[] = [
   {
-    path: '/dashboard',
+    path: '/admin/dashboard',
     label: '首页',
     icon: 'House',
     order: 1
   },
   {
-    path: '/announcement',
+    path: '/admin/announcement',
     label: '公告管理',
     icon: 'Message',
     order: 2,
     children: [
       {
-        path: '/announcement/list',
+        path: '/admin/announcement/list',
         label: '公告列表',
         icon: 'Document',
         order: 1
       },
       {
-        path: '/announcement/create',
+        path: '/admin/announcement/create',
         label: '发布公告',
         icon: 'Plus',
         order: 2
@@ -112,19 +112,19 @@ export const adminMenuConfig: MenuItem[] = [
     ]
   },
   {
-    path: '/message',
+    path: '/admin/message',
     label: '消息中心',
     icon: 'Bell',
     order: 3,
     children: [
       {
-        path: '/message/list',
+        path: '/admin/message/list',
         label: '消息列表',
         icon: 'Message',
         order: 1
       },
       {
-        path: '/message/settings',
+        path: '/admin/message/settings',
         label: '消息设置',
         icon: 'Setting',
         order: 2
@@ -132,19 +132,19 @@ export const adminMenuConfig: MenuItem[] = [
     ]
   },
   {
-    path: '/profile',
+    path: '/admin/profile',
     label: '个人中心',
     icon: 'User',
     order: 4,
     children: [
       {
-        path: '/profile',
+        path: '/admin/profile',
         label: '个人信息',
         icon: 'User',
         order: 1
       },
       {
-        path: '/profile/password',
+        path: '/admin/profile/password',
         label: '修改密码',
         icon: 'Lock',
         order: 2
