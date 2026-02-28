@@ -25,7 +25,6 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
           <div class="login-links">
             <el-link type="primary" :href="'/register'" class="register-link">立即注册</el-link>
           </div>
@@ -59,8 +58,7 @@ const loading = ref(false)
 // 登录表单
 const loginForm = reactive({
   loginId: '',
-  password: '',
-  remember: false
+  password: ''
 })
 
 // 登录验证规则
@@ -82,7 +80,7 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        const success = await userStore.login(loginForm.loginId, loginForm.password, loginForm.remember)
+        const success = await userStore.login(loginForm.loginId, loginForm.password)
         if (success) {
           router.push('/dashboard')
         }

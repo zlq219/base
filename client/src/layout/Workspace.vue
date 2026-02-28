@@ -104,12 +104,13 @@ const navigateTo = (path: string) => {
 const handleLogout = () => {
   // 检查当前是否在管理员系统中
   const isInAdminSystem = route.path.startsWith('/admin')
-  userStore.logout()
-  // 根据当前所在系统重定向到不同的登录页面
+  const systemToLogout = isInAdminSystem ? 'admin' : 'user'
+  userStore.logout(systemToLogout)
+  // 根据当前所在系统重定向到不同的登录页面，使用window.location.href强制刷新
   if (isInAdminSystem) {
-    router.push('/admin/login')
+    window.location.href = '/admin/login'
   } else {
-    router.push('/login')
+    window.location.href = '/login'
   }
   ElMessage.success('退出登录成功')
 }

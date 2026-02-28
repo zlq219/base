@@ -82,6 +82,52 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../../modules/profile/Password.vue'),
     meta: { requiresAuth: true, title: '修改密码' }
   },
+  // 管理员首页
+  {
+    path: '/admin/dashboard',
+    name: 'AdminDashboard',
+    component: () => import('../../modules/dashboard/Dashboard.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '管理员首页' }
+  },
+  // 管理员公告管理
+  {
+    path: '/admin/announcement/list',
+    name: 'AdminAnnouncementList',
+    component: () => import('../../modules/announcement/List.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '公告列表' }
+  },
+  {
+    path: '/admin/announcement/create',
+    name: 'AdminAnnouncementCreate',
+    component: () => import('../../modules/announcement/Create.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '发布公告' }
+  },
+  // 管理员消息中心
+  {
+    path: '/admin/message/list',
+    name: 'AdminMessageList',
+    component: () => import('../../modules/message/List.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '消息列表' }
+  },
+  {
+    path: '/admin/message/settings',
+    name: 'AdminMessageSettings',
+    component: () => import('../../modules/message/Settings.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '消息设置' }
+  },
+  // 管理员个人中心
+  {
+    path: '/admin/profile',
+    name: 'AdminProfile',
+    component: () => import('../../modules/profile/Index.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '个人信息' }
+  },
+  {
+    path: '/admin/profile/password',
+    name: 'AdminPasswordChange',
+    component: () => import('../../modules/profile/Password.vue'),
+    meta: { requiresAuth: true, roles: ['admin'], title: '修改密码' }
+  },
   // 系统管理
   {
     path: '/admin/users',
@@ -127,16 +173,36 @@ router.beforeEach((to, _from, next) => {
 
   // 检查是否需要认证
   if (requiresAuth) {
-    // 检查是否已登录
-    if (!userStore.isLoggedIn) {
-      next('/login')
+    // 检查是否已登录（普通用户或管理员）
+    if (!userStore.isLoggedIn && !userStore.isAdminLoggedIn) {
+      // 根据路径决定重定向到哪个登录页
+      if (to.path.startsWith('/admin/')) {
+        next('/admin/login')
+      } else {
+        next('/login')
+      }
       return
     }
 
     // 检查角色权限
-    if (requiredRoles.length > 0 && !requiredRoles.includes(userStore.userInfo.role)) {
-      next('/dashboard')
-      return
+    if (requiredRoles.length > 0) {
+      // 对于管理员路由，检查用户是否为管理员且有管理员token
+      if (to.path.startsWith('/admin/')) {
+        // 只有通过管理员登录页面登录的用户才能访问管理员路由
+        if (userStore.isAdminLoggedIn) {
+          next()
+          return
+        } else {
+          // 普通用户不能访问管理员路由，即使角色是admin
+          next('/dashboard')
+          return
+        }
+      }
+      // 对于其他需要角色的路由，检查用户角色
+      if (!requiredRoles.includes(userStore.userInfo.role)) {
+        next('/dashboard')
+        return
+      }
     }
   }
 
