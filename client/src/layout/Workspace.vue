@@ -11,7 +11,7 @@
       </div>
       <div class="header-right">
         <!-- 消息通知 -->
-        <el-dropdown>
+        <el-dropdown v-if="isCurrentSystemLoggedIn">
           <el-button type="text" icon="el-icon-bell">
             <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
           </el-button>
@@ -169,6 +169,14 @@ onMounted(() => {
     // 当登录状态相关数据变化时，重新初始化用户状态
     if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo' ||
         event.key === 'token_sync' || event.key === 'adminToken_sync' || event.key === 'userInfo_sync') {
+      // 同步localStorage到sessionStorage
+      if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo') {
+        if (event.newValue) {
+          sessionStorage.setItem(event.key, event.newValue)
+        } else {
+          sessionStorage.removeItem(event.key)
+        }
+      }
       // 强制重新初始化用户状态
       userStore.initialize()
     }
