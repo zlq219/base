@@ -249,7 +249,12 @@ onMounted(() => {
 :deep(.el-menu-item component),
 :deep(.el-sub-menu__title component),
 :deep(.el-menu-item > *:first-child:not(.el-icon)),
-:deep(.el-sub-menu__title > *:first-child:not(.el-icon)) {
+:deep(.el-sub-menu__title > *:first-child:not(.el-icon)),
+/* 确保子菜单图标大小一致 */
+:deep(.el-sub-menu .el-menu-item .el-icon),
+:deep(.el-sub-menu .el-menu-item svg),
+:deep(.el-sub-menu .el-menu-item component),
+:deep(.el-sub-menu .el-menu-item > *:first-child:not(.el-icon)) {
   width: 20px !important;
   height: 20px !important;
   margin-right: 10px !important;
