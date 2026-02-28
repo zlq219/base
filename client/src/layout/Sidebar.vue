@@ -76,23 +76,32 @@ const menuList = computed(() => {
   console.log('Sidebar菜单计算：userToken存在', !!userToken)
   console.log('Sidebar菜单计算：userStore.isLoggedIn', isLoggedIn)
   console.log('Sidebar菜单计算：userStore.isAdminLoggedIn', isAdminLoggedIn)
+  console.log('Sidebar菜单计算：当前路径', route.path)
   
-  // 直接检查是否有任何token
-  if (userToken || adminToken) {
-    // 有token，检查用户角色
+  // 检查当前路径
+  if (route.path.startsWith('/admin')) {
+    // 当前路径是管理员路径，检查是否有adminToken
     if (adminToken) {
       // 有adminToken，显示管理员菜单
       menus = [...adminMenuConfig]
-      console.log('Sidebar菜单计算：管理员登录，显示管理员菜单')
+      console.log('Sidebar菜单计算：当前在管理员系统且有adminToken，显示管理员菜单')
     } else {
-      // 普通登录用户
-      menus = [...userMenuConfig]
-      console.log('Sidebar菜单计算：普通用户登录，显示普通用户菜单')
+      // 没有adminToken，显示访客菜单
+      menus = [...guestMenuConfig]
+      console.log('Sidebar菜单计算：当前在管理员系统但没有adminToken，显示访客菜单')
     }
   } else {
-    // 没有token，显示访客菜单
-    menus = [...guestMenuConfig]
-    console.log('Sidebar菜单计算：未登录，显示访客菜单')
+    // 当前路径是普通用户路径，检查是否有userToken
+    if (userToken) {
+      // 有userToken，显示普通用户菜单
+      menus = [...userMenuConfig]
+      console.log('Sidebar菜单计算：当前在普通用户系统且有userToken，显示普通用户菜单')
+      console.log('Sidebar菜单计算：userToken值', userToken.substring(0, 20) + '...')
+    } else {
+      // 没有userToken，显示访客菜单
+      menus = [...guestMenuConfig]
+      console.log('Sidebar菜单计算：当前在普通用户系统但没有userToken，显示访客菜单')
+    }
   }
   
   // 按order字段排序

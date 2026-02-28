@@ -31,9 +31,9 @@
           </template>
         </el-dropdown>
         <!-- 用户头像 -->
-        <el-dropdown v-if="userStore.isLoggedIn">
+        <el-dropdown v-if="isCurrentSystemLoggedIn">
           <div class="user-avatar">
-              <img :src="(userInfo.avatar && userInfo.avatar.trim()) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="头像" />
+              <img :src="(userInfo.avatar && userInfo.avatar.trim()) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + userInfo.username" alt="头像" />
               <span class="user-name">{{ userInfo.username }}</span>
             </div>
           <template #dropdown>
@@ -87,16 +87,32 @@ const recentMessages = ref([
   }
 ])
 
+// 判断当前系统是否登录
+const isCurrentSystemLoggedIn = computed(() => {
+  // 检查当前是否在管理员系统中
+  const isInAdminSystem = route.path.startsWith('/admin')
+  // 如果在管理员系统中，检查管理员登录状态
+  if (isInAdminSystem) {
+    return userStore.isAdminLoggedIn
+  } else {
+    // 否则检查普通用户登录状态
+    return userStore.isLoggedIn
+  }
+})
+
 // 用户信息
 const userInfo = computed(() => {
-  return userStore.userInfo || { 
-    username: '测试用户',
-    avatar: '' // 未登录时不显示头像
-  }
+  return userStore.userInfo
 })
 
 // 导航到指定页面
 const navigateTo = (path: string) => {
+  // 检查当前是否在管理员系统中
+  const isInAdminSystem = route.path.startsWith('/admin')
+  // 如果在管理员系统中，并且路径不是以/admin开头，则添加/admin前缀
+  if (isInAdminSystem && !path.startsWith('/admin')) {
+    path = `/admin${path}`
+  }
   router.push(path)
 }
 
@@ -116,7 +132,18 @@ const handleLogout = () => {
 }
 
 onMounted(() => {
-  // 可以在这里添加初始化逻辑
+  // 初始化用户状态
+  userStore.initialize()
+  
+  // 监听localStorage变化，确保用户信息及时响应登录状态变化
+  window.addEventListener('storage', (event) => {
+    // 当登录状态相关数据变化时，重新初始化用户状态
+    if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo' ||
+        event.key === 'token_sync' || event.key === 'adminToken_sync' || event.key === 'userInfo_sync') {
+      // 强制重新初始化用户状态
+      userStore.initialize()
+    }
+  })
 })
 </script>
 
