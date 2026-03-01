@@ -12,17 +12,13 @@
       <template v-for="item in menuList" :key="item.path">
         <!-- 一级菜单 -->
         <el-menu-item v-if="!item.children" :index="item.path">
-          <el-icon v-if="item.icon">
-            <component :is="item.icon" />
-          </el-icon>
+          <component :is="item.icon" v-if="item.icon" />
           <span>{{ item.label }}</span>
         </el-menu-item>
         <!-- 二级菜单 -->
         <el-sub-menu v-else :index="item.path">
           <template #title>
-            <el-icon v-if="item.icon">
-              <component :is="item.icon" />
-            </el-icon>
+            <component :is="item.icon" v-if="item.icon" />
             <span>{{ item.label }}</span>
           </template>
           <el-menu-item
@@ -30,9 +26,7 @@
             :key="child.path"
             :index="child.path"
           >
-            <el-icon v-if="child.icon">
-              <component :is="child.icon" />
-            </el-icon>
+            <component :is="child.icon" v-if="child.icon" />
             <span>{{ child.label }}</span>
           </el-menu-item>
         </el-sub-menu>
@@ -69,7 +63,7 @@ const activeMenu = computed(() => {
 // 根据用户角色选择菜单
 const menuList = computed(() => {
   let menus = []
-  // 强制从sessionStorage重新读取状态，确保与其他标签页同步
+  // 强制从sessionStorage重新读取状态
   const adminToken = sessionStorage.getItem('adminToken')
   const userToken = sessionStorage.getItem('token')
   
@@ -95,7 +89,6 @@ const menuList = computed(() => {
       // 有userToken，显示普通用户菜单
       menus = [...userMenuConfig]
       console.log('Sidebar菜单计算：当前在普通用户系统且有userToken，显示普通用户菜单')
-      console.log('Sidebar菜单计算：userToken值', userToken.substring(0, 20) + '...')
     } else {
       // 没有userToken，显示访客菜单
       menus = [...guestMenuConfig]
@@ -140,55 +133,6 @@ watch(() => route.path, () => {
 onMounted(() => {
   // 初始化用户状态
   userStore.initialize()
-  
-  // 监听localStorage变化，确保菜单及时响应登录状态变化
-  window.addEventListener('storage', (event) => {
-    console.log('收到localStorage变化事件:', event.key, ' newValue:', event.newValue, ' oldValue:', event.oldValue)
-    // 当登录状态相关数据变化时，重新计算菜单
-    if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo' ||
-        event.key === 'token_sync' || event.key === 'adminToken_sync' || event.key === 'userInfo_sync') {
-      console.log('登录状态相关数据变化，同步sessionStorage并重新初始化用户状态')
-      // 同步localStorage到sessionStorage
-      if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo') {
-        if (event.newValue) {
-          sessionStorage.setItem(event.key, event.newValue)
-        } else {
-          sessionStorage.removeItem(event.key)
-        }
-      }
-      // 强制重新初始化用户状态
-      userStore.initialize()
-      // 菜单会自动重新计算，因为它依赖于sessionStorage的状态
-      console.log('令牌同步成功，菜单已更新')
-      console.log('同步后的状态：')
-      console.log('adminToken (sessionStorage):', !!sessionStorage.getItem('adminToken'))
-      console.log('token (sessionStorage):', !!sessionStorage.getItem('token'))
-      console.log('userInfo (sessionStorage):', !!sessionStorage.getItem('userInfo'))
-    }
-  })
-  
-  // 添加定期检查，确保菜单状态与sessionStorage保持同步
-  setInterval(() => {
-    const adminToken = sessionStorage.getItem('adminToken')
-    const userToken = sessionStorage.getItem('token')
-    const userInfoStr = sessionStorage.getItem('userInfo')
-    
-    console.log('定期检查登录状态：')
-    console.log('sessionStorage adminToken:', !!adminToken)
-    console.log('sessionStorage userToken:', !!userToken)
-    console.log('sessionStorage userInfo:', !!userInfoStr)
-    console.log('store adminToken:', !!userStore.adminToken)
-    console.log('store userToken:', !!userStore.token)
-    console.log('store isLoggedIn:', userStore.isLoggedIn)
-    console.log('store isAdmin:', userStore.isAdmin)
-    
-    // 检查当前store中的token与sessionStorage中的token是否一致
-    if (adminToken !== userStore.adminToken || userToken !== userStore.token) {
-      console.log('登录状态不一致，重新初始化')
-      userStore.initialize()
-      // 菜单会自动重新计算，因为它依赖于userStore的状态
-    }
-  }, 1000) // 每1秒检查一次
 })
 </script>
 
@@ -249,12 +193,7 @@ onMounted(() => {
 :deep(.el-menu-item component),
 :deep(.el-sub-menu__title component),
 :deep(.el-menu-item > *:first-child:not(.el-icon)),
-:deep(.el-sub-menu__title > *:first-child:not(.el-icon)),
-/* 确保子菜单图标大小一致 */
-:deep(.el-sub-menu .el-menu-item .el-icon),
-:deep(.el-sub-menu .el-menu-item svg),
-:deep(.el-sub-menu .el-menu-item component),
-:deep(.el-sub-menu .el-menu-item > *:first-child:not(.el-icon)) {
+:deep(.el-sub-menu__title > *:first-child:not(.el-icon)) {
   width: 20px !important;
   height: 20px !important;
   margin-right: 10px !important;

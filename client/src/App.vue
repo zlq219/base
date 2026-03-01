@@ -1,15 +1,41 @@
 <template>
-  <AppLayout>
+  <template v-if="isLayoutRequired">
+    <AppLayout>
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </AppLayout>
+  </template>
+  <template v-else>
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
-  </AppLayout>
+  </template>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import AppLayout from './layout/AppLayout.vue'
+
+const route = useRoute()
+
+// 判断是否需要布局
+const isLayoutRequired = computed(() => {
+  const noLayoutPaths = [
+    '/login',
+    '/admin/login',
+    '/register',
+    '/verify',
+    '/test/window-sync'
+  ]
+  
+  return !noLayoutPaths.some(path => route.path.startsWith(path))
+})
 </script>
 
 <style>

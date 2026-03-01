@@ -78,21 +78,18 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        const success = await userStore.login(loginForm.loginId, loginForm.password, true, 'admin')
-        if (success) {
-          // 等待一小段时间，确保localStorage中的数据已经保存完成
-          setTimeout(() => {
-            console.log('管理员登录：准备跳转到/admin/users')
-            console.log('登录成功后跳转前检查localStorage状态：')
-            console.log('adminToken:', !!localStorage.getItem('adminToken'))
-            console.log('token:', !!localStorage.getItem('token'))
-            console.log('userInfo:', !!localStorage.getItem('userInfo'))
-            // 强制刷新页面，确保菜单重新计算
-            window.location.href = '/admin/users'
-          }, 200)
-        }
-      } catch (error) {
-        ElMessage.error('登录失败，请重试')
+        await userStore.login(loginForm.loginId, loginForm.password, 'admin')
+        // 等待一小段时间，确保localStorage中的数据已经保存完成
+        setTimeout(() => {
+          console.log('管理员登录：准备跳转到/admin/users')
+          console.log('登录成功后跳转前检查sessionStorage状态：')
+          console.log('adminToken:', !!sessionStorage.getItem('adminToken'))
+          console.log('token:', !!sessionStorage.getItem('token'))
+          // 强制刷新页面，确保菜单重新计算
+          window.location.href = '/admin/users'
+        }, 200)
+      } catch (error: any) {
+        ElMessage.error(error.message || '登录失败，请重试')
       } finally {
         loading.value = false
       }

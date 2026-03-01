@@ -80,19 +80,16 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        const success = await userStore.login(loginForm.loginId, loginForm.password, true, 'user')
-        if (success) {
-          // 等待一小段时间，确保localStorage状态更新
-          setTimeout(() => {
-            console.log('登录成功后跳转前检查localStorage状态：')
-            console.log('token:', !!localStorage.getItem('token'))
-            console.log('userInfo:', !!localStorage.getItem('userInfo'))
-            // 强制刷新页面，确保菜单重新计算
-            window.location.href = '/dashboard'
-          }, 200)
-        }
-      } catch (error) {
-        ElMessage.error('登录失败，请重试')
+        await userStore.login(loginForm.loginId, loginForm.password, 'user')
+        // 等待一小段时间，确保sessionStorage状态更新
+        setTimeout(() => {
+          console.log('登录成功后跳转前检查sessionStorage状态：')
+          console.log('token:', !!sessionStorage.getItem('token'))
+          // 强制刷新页面，确保菜单重新计算
+          window.location.href = '/dashboard'
+        }, 200)
+      } catch (error: any) {
+        ElMessage.error(error.message || '登录失败，请重试')
       } finally {
         loading.value = false
       }

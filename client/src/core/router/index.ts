@@ -171,46 +171,48 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, _from, next) => {
-  const userStore = useUserStore()
+  // 直接从sessionStorage读取状态，不依赖userStore
+  const adminToken = sessionStorage.getItem('adminToken')
+  const userToken = sessionStorage.getItem('token')
   const requiresAuth = to.meta.requiresAuth !== false
-  const requiredRoles = to.meta.roles as string[] || []
 
   // 设置页面标题
   document.title = `${to.meta.title || '基础应用'} - 脚手架`
 
-  // 检查是否需要认证
-    if (requiresAuth) {
-      // 对于管理员路由，只检查管理员登录状态
-      if (to.path.startsWith('/admin/')) {
-        if (!userStore.isAdminLoggedIn) {
-          next('/admin/login')
-          return
-        }
-      } else {
-        // 对于普通路由，只检查普通用户登录状态
-        if (!userStore.isLoggedIn) {
-          next('/login')
-          return
-        }
-      }
+  console.log('路由守卫：当前路径', to.path)
+  console.log('路由守卫：adminToken存在', !!adminToken)
+  console.log('路由守卫：userToken存在', !!userToken)
 
-      // 检查角色权限
-      if (requiredRoles.length > 0) {
-        // 对于管理员路由，检查用户是否为管理员
-        if (to.path.startsWith('/admin/')) {
-          if (userStore.userInfo.role !== 'admin') {
-            next('/admin/login')
-            return
-          }
-        } else {
-          // 对于其他需要角色的路由，检查用户角色
-          if (!requiredRoles.includes(userStore.userInfo.role)) {
-            next('/dashboard')
-            return
-          }
-        }
+  // 检查是否已登录，如果已登录则重定向到相应的首页
+  if (to.path === '/' || to.path === '/login' || to.path === '/admin/login') {
+    // 检查是否已登录管理员（优先级高于普通用户）
+    if (adminToken && to.path === '/admin/login') {
+      next('/admin/users')
+      return
+    }
+    // 检查是否已登录普通用户
+    if (userToken && to.path === '/login') {
+      next('/dashboard')
+      return
+    }
+  }
+
+  // 检查是否需要认证
+  if (requiresAuth) {
+    // 对于管理员路由，只检查管理员登录状态
+    if (to.path.startsWith('/admin/')) {
+      if (!adminToken) {
+        next('/admin/login')
+        return
+      }
+    } else {
+      // 对于普通路由，只检查普通用户登录状态
+      if (!userToken) {
+        next('/login')
+        return
       }
     }
+  }
 
   next()
 })

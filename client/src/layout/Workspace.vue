@@ -95,12 +95,11 @@ const recentMessages = ref([
 const isCurrentSystemLoggedIn = computed(() => {
   // 检查当前是否在管理员系统中
   const isInAdminSystem = route.path.startsWith('/admin')
-  // 如果在管理员系统中，检查管理员登录状态
+  // 直接从sessionStorage读取状态，不依赖userStore
   if (isInAdminSystem) {
-    return userStore.isAdminLoggedIn
+    return !!sessionStorage.getItem('adminToken')
   } else {
-    // 否则检查普通用户登录状态
-    return userStore.isLoggedIn
+    return !!sessionStorage.getItem('token')
   }
 })
 
@@ -163,24 +162,6 @@ const switchSystem = () => {
 onMounted(() => {
   // 初始化用户状态
   userStore.initialize()
-  
-  // 监听localStorage变化，确保用户信息及时响应登录状态变化
-  window.addEventListener('storage', (event) => {
-    // 当登录状态相关数据变化时，重新初始化用户状态
-    if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo' ||
-        event.key === 'token_sync' || event.key === 'adminToken_sync' || event.key === 'userInfo_sync') {
-      // 同步localStorage到sessionStorage
-      if (event.key === 'token' || event.key === 'adminToken' || event.key === 'userInfo') {
-        if (event.newValue) {
-          sessionStorage.setItem(event.key, event.newValue)
-        } else {
-          sessionStorage.removeItem(event.key)
-        }
-      }
-      // 强制重新初始化用户状态
-      userStore.initialize()
-    }
-  })
 })
 </script>
 
